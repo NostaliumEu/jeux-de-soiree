@@ -225,6 +225,23 @@ while (garde++ < 400) {
   }
 }
 
+// Une Tournée peut tomber sur la toute dernière manche : elle se distribue
+// quand même, la partie n'est close qu'une fois le verre servi.
+plateau = (await lire('board_state', `session_id=eq.${hote.sessionId}&select=state`))[0]?.state
+for (const attente of plateau?.pendings ?? []) {
+  const cible = joueurs.find((x) => x.playerId !== attente.player)
+  await post('/api/play', {
+    scope: 'board',
+    sessionId: hote.sessionId,
+    playerId: parId[attente.player].playerId,
+    token: parId[attente.player].token,
+    payload:
+      attente.kind === 'tournee'
+        ? { kind: 'tournee', distribution: { [cible.playerId]: 3 } }
+        : { kind: 'duel', opponent: cible.playerId },
+  })
+}
+
 console.log('\n=== Vérification de la comptabilité ===')
 
 const [session] = await lire('sessions', `id=eq.${hote.sessionId}&select=*`)

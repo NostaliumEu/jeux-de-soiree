@@ -371,6 +371,32 @@ describe('fin de partie', () => {
     expect(s.roundIndex).toBe(2)
   })
 
+  it('n’impose pas de duel sur la dernière manche', () => {
+    // Depuis la case 1, +3 mène à la case 4 : un Duel. Mais la partie s'arrête
+    // là, donc l'affrontement n'aurait jamais lieu.
+    const out = applyRound(
+      makeBoard({ positions: { a: 1 }, totalRounds: 1 }),
+      { participants: JOUEURS, result: result([['a']]), bets: {} },
+      rng(),
+    )
+
+    expect(out.finished).toBe(true)
+    expect(out.pendings).toEqual([])
+    expect(out.log.some((l) => l.includes('la partie s’arrête ici'))).toBe(true)
+  })
+
+  it('sert quand même une tournée tombée sur la dernière manche', () => {
+    // Une Tournée, elle, se distribue sur-le-champ : rien n'empêche de la boire.
+    const out = applyRound(
+      makeBoard({ positions: { a: 3 }, totalRounds: 1 }),
+      { participants: JOUEURS, result: result([['a']]), bets: {} },
+      rng(),
+    )
+
+    expect(out.finished).toBe(true)
+    expect(out.pendings).toEqual([{ kind: 'tournee', player: 'a', amount: TOURNEE_SIPS }])
+  })
+
   it('refuse une manche supplémentaire une fois terminée', () => {
     let s = makeBoard({ totalRounds: 1 })
     s = applyRound(s, { participants: JOUEURS, result: result([['d']]), bets: {} }, rng())

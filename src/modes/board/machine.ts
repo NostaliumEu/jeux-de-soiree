@@ -125,6 +125,10 @@ export function applyRound(state: BoardState, input: RoundInput, rng: Rng): Boar
   }
 
   const vainqueurs = input.result.ranking[0] ?? []
+  // Une case Duel programme un affrontement pour la manche suivante. Sur la
+  // dernière, il n'y en aura pas : inutile de faire choisir un adversaire pour
+  // un duel qui n'aura jamais lieu.
+  const derniereManche = state.roundIndex + 1 >= state.totalRounds
 
   const pas = new Map<PlayerId, number>()
   input.result.ranking.forEach((groupe, rang) => {
@@ -176,7 +180,11 @@ export function applyRound(state: BoardState, input: RoundInput, rng: Rng): Boar
         pendings.push({ kind: 'tournee', player: id, amount: TOURNEE_SIPS })
         break
       case 'duel':
-        pendings.push({ kind: 'duel', player: id })
+        if (derniereManche) {
+          journal.push(`⚔️ ${id} tombe sur un Duel, mais la partie s’arrête ici.`)
+        } else {
+          pendings.push({ kind: 'duel', player: id })
+        }
         break
       case 'teleport': {
         const autres = players.filter((p) => p.id !== id)
