@@ -10,7 +10,7 @@ const compat = new FlatCompat({ baseDirectory: __dirname })
 const PURETE =
   'Les machines de jeu doivent rester des fonctions pures : le temps et l’aléa arrivent par ctx.'
 
-export default [
+const config = [
   { ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts'] },
 
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
@@ -61,3 +61,5 @@ export default [
     },
   },
 ]
+
+export default config

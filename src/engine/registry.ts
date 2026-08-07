@@ -41,7 +41,7 @@ export function findGame(key: string): AnyGameModule | undefined {
 }
 
 export function getGame(key: string): AnyGameModule {
-  const module = findGame(key)
-  if (!module) throw new Error(`Jeu inconnu : ${key}`)
-  return module
+  const jeu = findGame(key)
+  if (!jeu) throw new Error(`Jeu inconnu : ${key}`)
+  return jeu
 }

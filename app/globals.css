@@ -1,0 +1,159 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Nuit violacée : le fond d'une pièce éclairée au néon. */
+  --color-nuit-900: #07040d;
+  --color-nuit-800: #0e0819;
+  --color-nuit-700: #171029;
+  --color-nuit-600: #241a3f;
+  --color-nuit-500: #362a58;
+
+  --color-craie: #f6f1ff;
+  --color-brume: #a294c4;
+
+  --color-neon: #b14bff;
+  --color-acide: #c8ff3d;
+  --color-rose: #ff3d8b;
+  --color-cyan: #3de8ff;
+  --color-or: #ffc93d;
+
+  --font-display: var(--police-display), ui-sans-serif, sans-serif;
+  --font-sans: var(--police-corps), ui-sans-serif, sans-serif;
+  --font-mono: var(--police-mono), ui-monospace, monospace;
+
+  --radius-bloc: 1.25rem;
+
+  --animate-pulsation: pulsation 1.6s ease-in-out infinite;
+  --animate-montee: montee 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-flash: flash 0.35s ease-out;
+  --animate-derive: derive 18s ease-in-out infinite alternate;
+}
+
+@keyframes pulsation {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-acide) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+}
+
+@keyframes montee {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes flash {
+  from {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes derive {
+  from {
+    transform: translate3d(-4%, -3%, 0) scale(1.05);
+  }
+  to {
+    transform: translate3d(5%, 4%, 0) scale(1.15);
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-nuit-900);
+    color: var(--color-craie);
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Halos colorés qui dérivent lentement : la pièce respire. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: -20%;
+    z-index: -2;
+    pointer-events: none;
+    background:
+      radial-gradient(38rem 38rem at 18% 12%, color-mix(in oklab, var(--color-neon) 34%, transparent), transparent 68%),
+      radial-gradient(32rem 32rem at 84% 78%, color-mix(in oklab, var(--color-cyan) 22%, transparent), transparent 66%),
+      radial-gradient(28rem 28rem at 62% 26%, color-mix(in oklab, var(--color-rose) 18%, transparent), transparent 64%);
+    animation: var(--animate-derive);
+  }
+
+  /* Grain argentique : casse le dégradé et donne de la matière. */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.14;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  ::selection {
+    background: var(--color-acide);
+    color: var(--color-nuit-900);
+  }
+}
+
+@layer components {
+  /* Bloc à bordure franche et ombre dure, sans flou : esprit borne d'arcade. */
+  .bloc {
+    border: 2px solid var(--color-nuit-500);
+    border-radius: var(--radius-bloc);
+    background: color-mix(in oklab, var(--color-nuit-800) 88%, transparent);
+    box-shadow: 5px 5px 0 0 var(--color-nuit-900);
+    backdrop-filter: blur(10px);
+  }
+
+  .bloc-vif {
+    border-color: var(--color-neon);
+    box-shadow: 5px 5px 0 0 color-mix(in oklab, var(--color-neon) 45%, var(--color-nuit-900));
+  }
+
+  .titre {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 0.94;
+  }
+
+  .chiffre {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+  }
+
+  /* Réserve d'espace sous la barre d'accueil des téléphones. */
+  .zone-sure {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

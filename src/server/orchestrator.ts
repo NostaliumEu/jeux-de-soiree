@@ -85,24 +85,24 @@ export async function startRound(
     participants = [...board.forcedDuel]
   } else if (session.mode === 'free') {
     if (!options.gameKey) throw new InvalidActionError('Choisis un jeu.')
-    const module = getGame(options.gameKey)
-    if (ids.length < module.definition.minPlayers) {
+    const jeu = getGame(options.gameKey)
+    if (ids.length < jeu.definition.minPlayers) {
       throw new InvalidActionError(
-        `${module.definition.name} demande au moins ${module.definition.minPlayers} joueurs.`,
+        `${jeu.definition.name} demande au moins ${jeu.definition.minPlayers} joueurs.`,
       )
     }
-    gameKey = module.definition.key
-    format = module.definition.formats[0] as GameFormat
-    participants = pickParticipants(ids, format, module.definition, participationMap(players), rng)
+    gameKey = jeu.definition.key
+    format = jeu.definition.formats[0] as GameFormat
+    participants = pickParticipants(ids, format, jeu.definition, participationMap(players), rng)
   } else {
-    const module = pickGame(ids.length, session.last_game_key, rng, true)
-    gameKey = module.definition.key
-    format = pickFormat(module.definition, rng)
-    participants = pickParticipants(ids, format, module.definition, participationMap(players), rng)
+    const jeu = pickGame(ids.length, session.last_game_key, rng, true)
+    gameKey = jeu.definition.key
+    format = pickFormat(jeu.definition, rng)
+    participants = pickParticipants(ids, format, jeu.definition, participationMap(players), rng)
   }
 
-  const module = getGame(gameKey)
-  const state = module.machine.init({
+  const jeu = getGame(gameKey)
+  const state = jeu.machine.init({
     participants,
     rng: seedRng(seed, 'init'),
     now: Date.now(),
@@ -131,7 +131,7 @@ export async function startRound(
   const round = data as RoundRow
 
   await saveRoundState(round.id, state.public, state.secret, 0)
-  await writeViews(round.id, module.machine, state, participants)
+  await writeViews(round.id, jeu.machine, state, participants)
 
   await Promise.all([
     db
@@ -234,8 +234,8 @@ export async function applyGameAction(
     )
   }
 
-  const module = getGame(round.game_key)
-  const action = module.machine.parseAction(payload)
+  const jeu = getGame(round.game_key)
+  const action = jeu.machine.parseAction(payload)
   const estTimeout = typeof action === 'object' && action !== null && 'type' in action
     ? (action as { type: string }).type === 'timeout'
     : false
@@ -254,7 +254,7 @@ export async function applyGameAction(
   // connaît la forme, pas le serveur.
   const state = { public: publicState, secret: secretState } as unknown as GameState
 
-  const outcome = module.machine.reduce(state, action, {
+  const outcome = jeu.machine.reduce(state, action, {
     rng: seedRng(round.seed, version),
     now: Date.now(),
     mode: session.mode,
@@ -262,7 +262,7 @@ export async function applyGameAction(
   })
 
   await saveRoundState(round.id, outcome.state.public, outcome.state.secret, version + 1)
-  await writeViews(round.id, module.machine, outcome.state, round.participants)
+  await writeViews(round.id, jeu.machine, outcome.state, round.participants)
   await logAction(round.id, actor, payload)
 
   if (outcome.result) {
