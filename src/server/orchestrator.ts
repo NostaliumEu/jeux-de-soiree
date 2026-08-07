@@ -35,11 +35,18 @@ import {
   saveBoardState,
   savePlayerViews,
   saveRoundState,
+  saveRoundStateSi,
   touchSession,
   type PlayerRow,
   type RoundRow,
   type SessionRow,
 } from './store'
+
+/**
+ * Nombre de tentatives d écriture avant d abandonner. Une collision est rare
+ * et se résout au premier réessai ; au-dela, c est que la table s emballe.
+ */
+const MAX_REESSAIS = 5
 
 /** Fenêtre laissée aux spectateurs pour parier, en mode Plateau. */
 export const BET_WINDOW_MS = 15_000
@@ -301,24 +308,40 @@ export async function applyGameAction(
     throw new ForbiddenError('Tu ne participes pas à cette manche.')
   }
 
-  const { publicState, secretState, version } = await getRoundState(round.id)
-  // L'état revient de Postgres en JSON opaque : c'est la machine du jeu qui en
-  // connaît la forme, pas le serveur.
-  const state = { public: publicState, secret: secretState } as unknown as GameState
+  // Lire, appliquer, écrire — mais l'écriture n'aboutit que si personne n'a
+  // touché à l'état entre-temps. Sinon on recommence sur la version fraîche.
+  // C'est ce qui empêche deux joueurs simultanés de s'effacer l'un l'autre.
+  let outcome: ReturnType<typeof jeu.machine.reduce> | null = null
 
-  const outcome = jeu.machine.reduce(state, action, {
-    rng: seedRng(round.seed, version),
-    now: Date.now(),
-    mode: session.mode,
-    actor,
-  })
+  for (let essai = 0; essai < MAX_REESSAIS; essai++) {
+    const { publicState, secretState, version } = await getRoundState(round.id)
+    // L'état revient de Postgres en JSON opaque : c'est la machine du jeu qui
+    // en connaît la forme, pas le serveur.
+    const state = { public: publicState, secret: secretState } as unknown as GameState
 
-  // Ces deux écritures sont indépendantes : les enchaîner coûtait un
-  // aller-retour de plus à chaque coup joué.
-  await Promise.all([
-    saveRoundState(round.id, outcome.state.public, outcome.state.secret, version + 1),
-    writeViews(round.id, jeu.machine, outcome.state, round.participants),
-  ])
+    outcome = jeu.machine.reduce(state, action, {
+      rng: seedRng(round.seed, version),
+      now: Date.now(),
+      mode: session.mode,
+      actor,
+    })
+
+    const ecrit = await saveRoundStateSi(
+      round.id,
+      outcome.state.public,
+      outcome.state.secret,
+      version,
+    )
+    if (ecrit) break
+
+    outcome = null
+  }
+
+  if (!outcome) {
+    throw new InvalidActionError('Ça bouscule un peu, réessaie.')
+  }
+
+  await writeViews(round.id, jeu.machine, outcome.state, round.participants)
 
   if (outcome.result) {
     await finishRound(session, round, outcome.result)

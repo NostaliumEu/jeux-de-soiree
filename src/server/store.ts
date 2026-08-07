@@ -210,6 +210,45 @@ export async function saveRoundState(
   if (secrete.error) throw secrete.error
 }
 
+/**
+ * Écriture conditionnelle : n'aboutit que si l'état n'a pas bougé depuis la
+ * lecture.
+ *
+ * Sans cela, deux joueurs qui agissent dans la même seconde lisent la même
+ * version, appliquent chacun son coup dans son coin, et le second écrase le
+ * premier — dont l'action disparaît sans le moindre message d'erreur. Le
+ * Sprint rend le phénomène spectaculaire puisqu'il envoie plusieurs paquets
+ * par seconde, mais tous les jeux à actions simultanées y étaient exposés.
+ *
+ * @returns `false` si quelqu'un a écrit entre-temps ; l'appelant doit rejouer.
+ */
+export async function saveRoundStateSi(
+  roundId: string,
+  publicState: unknown,
+  secretState: unknown,
+  versionAttendue: number,
+): Promise<boolean> {
+  const db = serviceClient()
+
+  const { data, error } = await db
+    .from('round_public_state')
+    .update({ public_state: publicState, version: versionAttendue + 1 })
+    .eq('round_id', roundId)
+    .eq('version', versionAttendue)
+    .select('round_id')
+
+  if (error) throw error
+  if (!data || data.length === 0) return false
+
+  const { error: secretError } = await db
+    .from('round_secret_state')
+    .update({ secret_state: secretState })
+    .eq('round_id', roundId)
+
+  if (secretError) throw secretError
+  return true
+}
+
 export async function savePlayerViews(
   roundId: string,
   views: Array<{ playerId: string; payload: unknown }>,

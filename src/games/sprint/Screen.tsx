@@ -8,9 +8,11 @@ import type { SprintPublic } from './machine'
 
 export function SprintEcran({ etat, moi, joueurs, decalage, envoyer }: EcranProps<SprintPublic>) {
   const [avantDepart, setAvantDepart] = useState(0)
-  const [local, setLocal] = useState(0)
+  /** Coups tapés que le serveur n'a pas encore confirmés. */
+  const [enAttente, setEnAttente] = useState(0)
 
-  const enAttente = useRef(0)
+  const enAttenteRef = useRef(0)
+  const enVol = useRef(false)
   const participe = etat.participants.includes(moi)
   const arrive = etat.finishers.includes(moi)
   const confirme = etat.progress[moi] ?? 0
@@ -26,20 +28,26 @@ export function SprintEcran({ etat, moi, joueurs, decalage, envoyer }: EcranProp
     return () => clearInterval(timer)
   }, [etat.startsAt, decalage])
 
-  // Envoi groupé des coups.
+  // Envoi groupé des coups, UNE requête à la fois.
   //
-  // Un tap déclenche une animation locale immédiate ; les coups accumulés
-  // partent quatre fois par seconde. Un envoi réseau par tap, à trois cents
-  // millisecondes l'aller-retour, rendrait le jeu injouable et saturerait le
-  // serveur pour rien.
+  // Un envoi par tap saturerait tout, mais enchaîner les paquets sans attendre
+  // la réponse est pire encore : à trois cents millisecondes l'aller-retour et
+  // un paquet toutes les 250 ms, deux requêtes se croisent, lisent le même état
+  // et s'écrasent l'une l'autre. La moitié des coups se perdait en chemin.
   useEffect(() => {
     if (!participe || arrive || etat.phase === 'over') return
 
     const timer = setInterval(() => {
-      const lot = Math.min(enAttente.current, SPRINT_MAX_BATCH)
+      if (enVol.current) return
+      const lot = Math.min(enAttenteRef.current, SPRINT_MAX_BATCH)
       if (lot <= 0) return
-      enAttente.current -= lot
-      void envoyer({ type: 'taps', count: lot })
+
+      enVol.current = true
+      void envoyer({ type: 'taps', count: lot }).finally(() => {
+        enAttenteRef.current = Math.max(0, enAttenteRef.current - lot)
+        setEnAttente(enAttenteRef.current)
+        enVol.current = false
+      })
     }, SPRINT_BATCH_MS)
 
     return () => clearInterval(timer)
@@ -47,12 +55,14 @@ export function SprintEcran({ etat, moi, joueurs, decalage, envoyer }: EcranProp
 
   const taper = () => {
     if (!participe || arrive || avantDepart > 0 || etat.phase === 'over') return
-    enAttente.current += 1
-    setLocal((n) => n + 1)
+    enAttenteRef.current += 1
+    setEnAttente(enAttenteRef.current)
   }
 
-  // La jauge affichée avance dès le tap, sans attendre la confirmation serveur.
-  const affichee = Math.min(etat.target, Math.max(confirme, local))
+  // Ce que le serveur a validé, plus ce qui est encore en route. La jauge
+  // réagit donc au doigt sans jamais annoncer plus que ce qui finira par
+  // compter : quand tous les paquets sont arrivés, les deux valeurs coïncident.
+  const affichee = Math.min(etat.target, confirme + enAttente)
   const remplissage = affichee / etat.target
 
   const classement = [...etat.participants].sort(
