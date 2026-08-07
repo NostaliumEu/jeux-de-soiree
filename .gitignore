@@ -30,3 +30,6 @@ npm-debug.log*
 yarn-error.log*
 .vercel
 *.tsbuildinfo
+
+.vercel
+.env*

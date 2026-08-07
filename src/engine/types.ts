@@ -48,9 +48,21 @@ export interface GameDefinition {
   supportsBoard: boolean
 }
 
-/** Tout état public de jeu expose au moins ces deux champs. */
+/** Tout état public de jeu expose au moins ces champs. */
 export interface BasePublicState {
   phase: string
+  /**
+   * Gorgées bues DEPUIS LE DÉBUT DE LA MANCHE, par joueur.
+   *
+   * Le total de la soirée n'est consolidé en base qu'à la fin d'une manche.
+   * Sans ce champ, un joueur qui encaisse quinze gorgées au cours d'une partie
+   * de Purple verrait son compteur rester à zéro jusqu'au dénouement. Les
+   * écrans additionnent donc le total consolidé et cette valeur en cours.
+   *
+   * Facultatif : certains jeux, comme Le Faux Départ, ne distribuent de
+   * gorgées qu'au moment de conclure.
+   */
+  sips?: Record<PlayerId, number>
   /**
    * Instant limite de la phase courante, en millisecondes serveur.
    * `null` quand la phase n'expire pas. Quand la date est dépassée, n'importe

@@ -55,7 +55,7 @@ export interface PurplePublic extends BasePublicState {
   /** Gorgées apportées à la banque par joueur. */
   contributions: Record<PlayerId, number>
   /** Gorgées bues par joueur. */
-  drank: Record<PlayerId, number>
+  sips: Record<PlayerId, number>
   history: PurpleReveal[]
   cardsLeft: number
 }
@@ -165,7 +165,7 @@ function buildResult(pub: PurplePublic): GameResult {
 
   return {
     ranking: [...groupes.entries()].sort((a, b) => b[0] - a[0]).map(([, ids]) => ids),
-    sips: { ...pub.drank },
+    sips: { ...pub.sips },
   }
 }
 
@@ -188,7 +188,7 @@ export const purpleMachine: GameMachine<PurpleState, PurpleAction> = {
         failures: 0,
         fails: zeroed(ctx.participants),
         contributions: zeroed(ctx.participants),
-        drank: zeroed(ctx.participants),
+        sips: zeroed(ctx.participants),
         history: [],
         cardsLeft: 52,
       },
@@ -275,7 +275,7 @@ export const purpleMachine: GameMachine<PurpleState, PurpleAction> = {
       contributions: success
         ? { ...pub.contributions, [tour]: (pub.contributions[tour] ?? 0) + gain }
         : pub.contributions,
-      drank: success ? pub.drank : { ...pub.drank, [tour]: (pub.drank[tour] ?? 0) + bue },
+      sips: success ? pub.sips : { ...pub.sips, [tour]: (pub.sips[tour] ?? 0) + bue },
       history: [reveal, ...pub.history].slice(0, PURPLE_HISTORY_LENGTH),
       currentIndex: (pub.currentIndex + 1) % pub.order.length,
       cardsLeft: draw.deck.length,

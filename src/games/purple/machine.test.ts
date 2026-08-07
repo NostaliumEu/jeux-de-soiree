@@ -22,7 +22,7 @@ function makeState(opts: {
   failures?: number
   fails?: Record<PlayerId, number>
   contributions?: Record<PlayerId, number>
-  drank?: Record<PlayerId, number>
+  sips?: Record<PlayerId, number>
 }): PurpleState {
   const pub: PurplePublic = {
     phase: 'bet',
@@ -34,7 +34,7 @@ function makeState(opts: {
     failures: opts.failures ?? 0,
     fails: opts.fails ?? zero(),
     contributions: opts.contributions ?? zero(),
-    drank: opts.drank ?? zero(),
+    sips: opts.sips ?? zero(),
     history: [],
     cardsLeft: opts.deck.length,
   }
@@ -81,7 +81,7 @@ describe('réussites', () => {
     expect(out.state.public.bank).toBe(5)
     expect(out.state.public.contributions['a']).toBe(1)
     expect(out.state.public.currentIndex).toBe(1)
-    expect(out.state.public.drank['a']).toBe(0)
+    expect(out.state.public.sips['a']).toBe(0)
     expect(out.result).toBeUndefined()
   })
 
@@ -113,7 +113,7 @@ describe('échecs', () => {
     const s = makeState({ deck: [c('K', '♠')], bank: 7 })
     const out = purpleMachine.reduce(s, { type: 'bet', bet: 'red' }, ctx('a'))
 
-    expect(out.state.public.drank['a']).toBe(7)
+    expect(out.state.public.sips['a']).toBe(7)
     expect(out.state.public.bank).toBe(0)
     expect(out.state.public.failures).toBe(1)
     expect(out.state.public.fails['a']).toBe(1)
@@ -124,7 +124,7 @@ describe('échecs', () => {
     const s = makeState({ deck: [c('2', '♥'), c('9', '♦')], bank: 12 })
     const out = purpleMachine.reduce(s, { type: 'bet', bet: 'purple' }, ctx('a'))
 
-    expect(out.state.public.drank['a']).toBe(12)
+    expect(out.state.public.sips['a']).toBe(12)
     expect(out.state.public.bank).toBe(0)
   })
 
@@ -132,17 +132,17 @@ describe('échecs', () => {
     const s = makeState({ deck: [c('7', '♥')], reference: c('7', '♠'), bank: 5 })
 
     const haut = purpleMachine.reduce(s, { type: 'bet', bet: 'higher' }, ctx('a'))
-    expect(haut.state.public.drank['a']).toBe(5)
+    expect(haut.state.public.sips['a']).toBe(5)
 
     const bas = purpleMachine.reduce(s, { type: 'bet', bet: 'lower' }, ctx('a'))
-    expect(bas.state.public.drank['a']).toBe(5)
+    expect(bas.state.public.sips['a']).toBe(5)
   })
 
   it('une banque vide ne fait rien boire, mais compte comme un échec', () => {
     const s = makeState({ deck: [c('K', '♠')], bank: 0 })
     const out = purpleMachine.reduce(s, { type: 'bet', bet: 'red' }, ctx('a'))
 
-    expect(out.state.public.drank['a']).toBe(0)
+    expect(out.state.public.sips['a']).toBe(0)
     expect(out.state.public.failures).toBe(1)
   })
 })

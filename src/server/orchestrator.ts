@@ -75,7 +75,57 @@ export async function startRound(
   let format: GameFormat
   let participants: PlayerId[]
 
-  const board = session.mode === 'board' ? ((await getBoardState(session.id)) as BoardState | null) : null
+  let board: BoardState | null = null
+
+  if (session.mode === 'board') {
+    board = (await getBoardState(session.id)) as BoardState | null
+
+    // Première manche : c'est ici qu'on pose l'anneau, pas à la création de la
+    // soirée — à ce moment-là l'hôte était seul et le plateau n'aurait eu
+    // aucun sens.
+    if (!board) {
+      board = initBoard(ids, session.settings.totalRounds ?? 15, seedRng(seed, 'plateau'))
+      await saveBoardState(session.id, board)
+    } else {
+      let modifie = false
+      let courant = board
+
+      // Un joueur n'a jamais répondu à sa Tournée ou à son Duel. Une soirée ne
+      // doit jamais se bloquer sur quelqu'un parti aux toilettes : on abandonne
+      // l'effet et on le dit.
+      if (courant.pendings.length > 0) {
+        const abandonnes = courant.pendings.map((p) => p.kind).join(', ')
+        courant = {
+          ...courant,
+          pendings: [],
+          log: [...courant.log, `Effet de case abandonné faute de réponse : ${abandonnes}.`],
+        }
+        modifie = true
+      }
+
+      // Les gens arrivent en cours de soirée : ils entrent sur le plateau au
+      // départ plutôt que de rester sans pion pour le reste de la partie.
+      const connus = new Set(courant.players.map((p) => p.id))
+      const nouveaux = ids.filter((id) => !connus.has(id))
+      if (nouveaux.length > 0) {
+        courant = {
+          ...courant,
+          players: [
+            ...courant.players,
+            ...nouveaux.map((id) => ({ id, position: 0, stars: 0, distance: 0 })),
+          ],
+          sips: { ...Object.fromEntries(nouveaux.map((id) => [id, 0])), ...courant.sips },
+          log: [...courant.log, `${nouveaux.length} joueur(s) entrent sur le plateau.`],
+        }
+        modifie = true
+      }
+
+      if (modifie) {
+        board = { ...courant, log: courant.log.slice(-40) }
+        await saveBoardState(session.id, board)
+      }
+    }
+  }
 
   if (board?.forcedDuel) {
     // Une case Duel a programmé un affrontement : il prime sur le tirage.
@@ -352,20 +402,6 @@ export async function resolveBoardPending(
   await saveBoardState(session.id, apres)
   await addSips(session.id, deltaSips(avant.sips, apres.sips))
   await touchSession(session.id)
-}
-
-export async function startBoard(session: SessionRow, totalRounds: number): Promise<void> {
-  const players = await getPlayers(session.id)
-  const board = initBoard(
-    players.map((p) => p.id),
-    totalRounds,
-    createRng(crypto.randomUUID()),
-  )
-  await saveBoardState(session.id, board)
-  await serviceClient()
-    .from('sessions')
-    .update({ settings: { totalRounds }, status: 'lobby' })
-    .eq('id', session.id)
 }
 
 export async function backToLobby(session: SessionRow): Promise<void> {

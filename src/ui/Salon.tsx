@@ -256,8 +256,17 @@ function Arrivee({
 }
 
 function Entete({ instantane, moi }: { instantane: Instantane; moi: string }) {
-  const gorgees = instantane.gorgees[moi] ?? 0
   const hote = instantane.session.host_player_id === moi
+
+  // Le total consolidé n'est écrit en base qu'à la fin d'une manche : on lui
+  // ajoute les gorgées de la manche en cours, sinon le compteur reste figé
+  // pendant qu'on boit. Une fois la manche close, le total les contient déjà.
+  const enCours =
+    instantane.session.status === 'playing'
+      ? ((instantane.etatPublic?.['sips'] as Record<string, number> | undefined)?.[moi] ?? 0)
+      : 0
+
+  const gorgees = (instantane.gorgees[moi] ?? 0) + enCours
 
   return (
     <header className="flex items-center justify-between gap-3">

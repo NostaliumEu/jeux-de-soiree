@@ -18,7 +18,6 @@ import {
   backToLobby,
   closeBetting,
   loadRoundForSession,
-  startBoard,
   startRound,
 } from '@/server/orchestrator'
 
@@ -104,11 +103,16 @@ export async function POST(request: NextRequest) {
       const session = await createSession(body.mode)
       const { playerId, token } = await createPlayer(session.id, body.nickname, body.avatar)
 
-      await db.from('sessions').update({ host_player_id: playerId }).eq('id', session.id)
-
-      if (body.mode === 'board') {
-        await startBoard({ ...session, host_player_id: playerId }, body.totalRounds ?? 15)
-      }
+      // Le plateau n'est PAS créé ici : à cet instant l'hôte est seul, et un
+      // plateau à un joueur n'a aucun sens. On mémorise seulement le nombre de
+      // manches ; l'anneau sera posé au lancement, quand la table est complète.
+      await db
+        .from('sessions')
+        .update({
+          host_player_id: playerId,
+          ...(body.mode === 'board' ? { settings: { totalRounds: body.totalRounds ?? 15 } } : {}),
+        })
+        .eq('id', session.id)
 
       return NextResponse.json({ sessionId: session.id, code: session.code, playerId, token })
     }
