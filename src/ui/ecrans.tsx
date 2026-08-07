@@ -8,6 +8,7 @@ import { TuPreferesEcran } from '@/games/tu-preferes/Screen'
 import { ImposteurEcran } from '@/games/imposteur/Screen'
 import { BombeEcran } from '@/games/bombe/Screen'
 import { SprintEcran } from '@/games/sprint/Screen'
+import { UnoEcran } from '@/games/uno/Screen'
 import type { EcranProps } from '@/client/types'
 
 /**
@@ -31,4 +32,5 @@ export const ECRANS: Record<string, Ecran> = {
   imposteur: adapter(ImposteurEcran),
   bombe: adapter(BombeEcran),
   sprint: adapter(SprintEcran),
+  uno: adapter(UnoEcran),
 }

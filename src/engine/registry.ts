@@ -20,6 +20,8 @@ import { definition as bombeDefinition } from '@/games/bombe/definition'
 import { bombeMachine } from '@/games/bombe/machine'
 import { definition as sprintDefinition } from '@/games/sprint/definition'
 import { sprintMachine } from '@/games/sprint/machine'
+import { definition as unoDefinition } from '@/games/uno/definition'
+import { unoMachine } from '@/games/uno/machine'
 import type { AnyGameModule, GameDefinition, GameMachine, GameState } from './types'
 
 /**
@@ -41,6 +43,7 @@ export const GAMES: readonly AnyGameModule[] = [
   register(imposteurDefinition, imposteurMachine),
   register(bombeDefinition, bombeMachine),
   register(sprintDefinition, sprintMachine),
+  register(unoDefinition, unoMachine),
 ]
 
 export const GAME_DEFINITIONS: readonly GameDefinition[] = GAMES.map((g) => g.definition)

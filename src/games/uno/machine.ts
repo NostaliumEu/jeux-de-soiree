@@ -336,10 +336,12 @@ export const unoMachine: GameMachine<UnoState, UnoAction> = {
     /* ------------------------------------------- décision après une pioche */
     if (pub.phase === 'apres-pioche') {
       if (action.type === 'passer') {
-        return finDeTour(state, { ...pub, phase: 'tour', currentIndex: indexSuivant(pub) }, {
-          ...state.secret,
-          piochee: null,
-        }, ctx, `${tour} passe son tour.`)
+        return finDeTour(
+          { ...pub, phase: 'tour', currentIndex: indexSuivant(pub) },
+          { ...state.secret, piochee: null },
+          ctx,
+          `${tour} passe son tour.`,
+        )
       }
 
       if (action.type !== 'play-piochee') {
@@ -465,12 +467,11 @@ function conclure(
     pub = { ...pub, journal: avecJournal(pub, `${joueur} annonce UNO !`) }
   }
 
-  return finDeTour({ public: pub, secret }, pub, secret, ctx, null, carte, joueur)
+  return finDeTour(pub, secret, ctx, null, carte, joueur)
 }
 
 /** Pose la nouvelle échéance et emballe la sortie. */
 function finDeTour(
-  _state: UnoState,
   pub: UnoPublic,
   secret: UnoSecret,
   ctx: { now: number },

@@ -5,6 +5,7 @@ import { definition as tuPreferes } from '@/games/tu-preferes/definition'
 import { definition as imposteur } from '@/games/imposteur/definition'
 import { definition as bombe } from '@/games/bombe/definition'
 import { definition as sprint } from '@/games/sprint/definition'
+import { definition as uno } from '@/games/uno/definition'
 import type { GameDefinition } from '@/engine/types'
 
 /**
@@ -19,6 +20,7 @@ export const CATALOGUE: readonly GameDefinition[] = [
   imposteur,
   bombe,
   sprint,
+  uno,
 ]
 
 export function ficheDe(key: string): GameDefinition | undefined {
