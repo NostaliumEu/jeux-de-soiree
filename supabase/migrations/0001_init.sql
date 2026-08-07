@@ -175,6 +175,15 @@ as $$
   delete from sessions where last_activity_at < now() - interval '24 hours';
 $$;
 
+-- Cette fonction est en SECURITY DEFINER : elle contourne RLS. Supabase expose
+-- automatiquement toute fonction du schéma `public` sur /rest/v1/rpc, ce qui en
+-- ferait un endpoint de suppression appelable par quiconque possède la clé
+-- publique — laquelle est, par construction, dans le bundle du navigateur.
+-- Seuls pg_cron et le serveur doivent pouvoir l'appeler.
+revoke execute on function public.cleanup_stale_sessions() from public;
+revoke execute on function public.cleanup_stale_sessions() from anon;
+revoke execute on function public.cleanup_stale_sessions() from authenticated;
+
 -- Planification quotidienne si pg_cron est disponible sur le projet.
 do $$
 begin
