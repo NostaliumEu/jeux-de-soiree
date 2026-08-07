@@ -106,6 +106,30 @@ npm run lint && npm run typecheck && npm run build
 
 150 tests unitaires couvrent les règles des quatre jeux et du plateau, y compris les cas limites : égalité en plus/moins, paquet épuisé, double faux départ, égalité de vote, franchissement de l'étoile, bouclage de l'anneau.
 
+### Tests de bout en bout
+
+Ils exigent un serveur en marche (`npm run dev`) et un `.env.local` renseigné, parce qu'ils jouent contre une vraie base.
+
+```bash
+npm run test:e2e
+```
+
+Cycle de vie d'une soirée, lancement d'une manche, un coup de Purple — et surtout l'**étanchéité RLS** : le paquet de cartes, les jetons joueurs et le journal d'actions doivent rester inaccessibles depuis un navigateur, et la clé publique ne doit permettre aucune écriture.
+
+```bash
+npm run test:plateau
+```
+
+Quatre joueurs automatiques jouent une partie de plateau complète, quel que soit le mini-jeu tiré, en pariant et en résolvant les cases Tournée et Duel. La comptabilité est réconciliée à la fin : les gorgées du plateau doivent correspondre au total consolidé en base.
+
+Pour viser un déploiement plutôt que le serveur local :
+
+```bash
+E2E_BASE=https://mon-app.vercel.app npm run test:e2e
+```
+
+Ces deux scripts ont trouvé trois bugs que les tests unitaires ne pouvaient pas voir : une manche de Purple qui ne démarrait pas, un mode Plateau qui ne s'initialisait jamais, et une fonction SQL exposée publiquement. Il faut une vraie base pour les attraper.
+
 ## Déploiement
 
 Importer le dépôt sur [Vercel](https://vercel.com), renseigner les trois variables d'environnement, déployer. Le lien de la soirée est directement partageable.
