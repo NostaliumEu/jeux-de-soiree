@@ -42,7 +42,7 @@ const schema = z.discriminatedUnion('action', [
     avatar,
   }),
   z.object({
-    action: z.enum(['start', 'next', 'lobby', 'close-bets', 'leave']),
+    action: z.enum(['start', 'next', 'lobby', 'close-bets', 'leave', 'abandonner']),
     sessionId: z.string().uuid(),
     playerId: z.string().uuid(),
     token: z.string().min(8),
@@ -194,6 +194,20 @@ export async function POST(request: NextRequest) {
         if (session.mode === 'board') {
           const round = await startRound(session)
           return NextResponse.json({ roundId: round.id })
+        }
+        await backToLobby(session)
+        return NextResponse.json({ ok: true })
+      }
+
+      case 'abandonner': {
+        await requireHost(session, joueur.id)
+        // Sortie de secours : une manche que plus personne ne peut terminer
+        // ne doit pas condamner la soiree entiere.
+        if (session.current_round_id) {
+          await db
+            .from('rounds')
+            .update({ status: 'done', ended_at: new Date().toISOString() })
+            .eq('id', session.current_round_id)
         }
         await backToLobby(session)
         return NextResponse.json({ ok: true })

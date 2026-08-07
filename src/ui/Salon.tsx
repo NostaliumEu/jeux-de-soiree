@@ -128,7 +128,7 @@ export function Salon({ code }: { code: string }) {
   )
 
   const commande = useCallback(
-    async (action: 'start' | 'next' | 'lobby' | 'close-bets', gameKey?: string) => {
+    async (action: 'start' | 'next' | 'lobby' | 'close-bets' | 'abandonner', gameKey?: string) => {
       if (!identite) return
       try {
         await api.hote(identite, action, gameKey)
@@ -452,7 +452,7 @@ function Corps({
   decalage: number
   vuePrivee: unknown
   envoyer: (payload: unknown) => Promise<void>
-  commande: (action: 'start' | 'next' | 'lobby' | 'close-bets', gameKey?: string) => Promise<void>
+  commande: (action: 'start' | 'next' | 'lobby' | 'close-bets' | 'abandonner', gameKey?: string) => Promise<void>
 }) {
   const moi = identite.playerId
   const { session, joueurs, manche, etatPublic, plateau } = instantane
@@ -560,6 +560,16 @@ function Corps({
 
   return (
     <div className="flex flex-col gap-4">
+      {!participe && (
+        <Bloc className="border-or/60 text-center">
+          <Surtitre>Tu regardes</Surtitre>
+          <p className="text-sm text-brume">
+            La manche avait déjà commencé quand tu es arrivé — on ne distribue pas des cartes
+            au milieu d’une main. Tu joues à la prochaine.
+          </p>
+        </Bloc>
+      )}
+
       <Ecran
         etat={etatPublic as never}
         moi={moi}
@@ -569,9 +579,18 @@ function Corps({
         vuePrivee={vuePrivee}
         envoyer={envoyer}
       />
+
       {hote && session.mode === 'free' && manche.game_key === 'purple' && (
         <BoutonFantome onClick={() => void envoyer({ type: 'finish' })}>
           Arrêter la manche
+        </BoutonFantome>
+      )}
+
+      {/* Sortie de secours : aucune soirée ne doit rester coincée sur une
+          manche que plus personne ne peut terminer. */}
+      {hote && manche.game_key !== 'purple' && (
+        <BoutonFantome onClick={() => void commande('abandonner')}>
+          Abandonner la manche
         </BoutonFantome>
       )}
     </div>
@@ -587,7 +606,7 @@ function Lobby({
   instantane: Instantane
   moi: string
   hote: boolean
-  commande: (action: 'start' | 'next' | 'lobby' | 'close-bets', gameKey?: string) => Promise<void>
+  commande: (action: 'start' | 'next' | 'lobby' | 'close-bets' | 'abandonner', gameKey?: string) => Promise<void>
 }) {
   const { session, joueurs, plateau } = instantane
   const [copie, setCopie] = useState(false)
@@ -819,7 +838,7 @@ function Resultats({
   instantane: Instantane
   moi: string
   hote: boolean
-  commande: (action: 'start' | 'next' | 'lobby' | 'close-bets', gameKey?: string) => Promise<void>
+  commande: (action: 'start' | 'next' | 'lobby' | 'close-bets' | 'abandonner', gameKey?: string) => Promise<void>
 }) {
   const { manche, joueurs, plateau, session } = instantane
   const resultat = manche?.result

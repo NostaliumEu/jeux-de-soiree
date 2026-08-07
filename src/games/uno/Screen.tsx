@@ -69,7 +69,15 @@ function CarteVue({
   )
 }
 
-export function UnoEcran({ etat, moi, joueurs, decalage, vuePrivee, envoyer }: EcranProps<UnoPublic>) {
+export function UnoEcran({
+  etat,
+  moi,
+  joueurs,
+  participe,
+  decalage,
+  vuePrivee,
+  envoyer,
+}: EcranProps<UnoPublic>) {
   const [choixCouleur, setChoixCouleur] = useState<number | 'piochee' | null>(null)
   const [uno, setUno] = useState(false)
   const [enCours, setEnCours] = useState(false)
@@ -252,26 +260,30 @@ export function UnoEcran({ etat, moi, joueurs, decalage, vuePrivee, envoyer }: E
             </button>
           )}
 
-          {/* Ma main. */}
-          <div>
-            <Surtitre>Ta main — {main.length} cartes</Surtitre>
-            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
-              {main.map((carte, index) => {
-                const ok = monTour && etat.phase === 'tour' && jouable(carte)
-                return (
-                  <button
-                    key={`${carte.couleur}-${carte.valeur}-${index}`}
-                    type="button"
-                    disabled={!ok || enCours}
-                    onClick={() => poser(index, carte)}
-                    className={ok ? 'transition-transform active:scale-95' : 'cursor-default'}
-                  >
-                    <CarteVue carte={carte} eteinte={!ok} />
-                  </button>
-                )
-              })}
+          {/* Ma main — seulement si je suis dans la partie. Un spectateur n'a
+              pas de cartes, et afficher « 0 carte » l'aurait laissé croire à un
+              bug plutôt qu'à son statut. */}
+          {participe && (
+            <div>
+              <Surtitre>Ta main — {main.length} cartes</Surtitre>
+              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
+                {main.map((carte, index) => {
+                  const ok = monTour && etat.phase === 'tour' && jouable(carte)
+                  return (
+                    <button
+                      key={`${carte.couleur}-${carte.valeur}-${index}`}
+                      type="button"
+                      disabled={!ok || enCours}
+                      onClick={() => poser(index, carte)}
+                      className={ok ? 'transition-transform active:scale-95' : 'cursor-default'}
+                    >
+                      <CarteVue carte={carte} eteinte={!ok} />
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {monTour && etat.phase === 'tour' && (
             <Bouton

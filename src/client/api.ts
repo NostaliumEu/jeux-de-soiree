@@ -41,7 +41,7 @@ export const api = {
     })
   },
 
-  hote(identite: Identite, action: 'start' | 'next' | 'lobby' | 'close-bets', gameKey?: string) {
+  hote(identite: Identite, action: 'start' | 'next' | 'lobby' | 'close-bets' | 'abandonner', gameKey?: string) {
     return envoyer<{ ok?: boolean; roundId?: string }>('/api/session', {
       action,
       sessionId: identite.sessionId,
