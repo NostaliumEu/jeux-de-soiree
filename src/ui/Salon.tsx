@@ -223,7 +223,7 @@ function Arrivee({
         </div>
         <div>
           <Surtitre>Ton avatar</Surtitre>
-          <div className="grid grid-cols-8 gap-1.5">
+          <div className="grid grid-cols-6 gap-2">
             {AVATARS.map((emoji) => (
               <button
                 key={emoji}

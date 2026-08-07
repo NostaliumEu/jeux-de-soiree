@@ -9,6 +9,14 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
  * immédiate et bruyante plutôt qu'en faille silencieuse.
  */
 
+/** Le projet n'est pas configuré. C'est l'erreur d'installation numéro un. */
+export class ConfigurationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ConfigurationError'
+  }
+}
+
 let cache: SupabaseClient | null = null
 
 export function serviceClient(): SupabaseClient {
@@ -24,9 +32,9 @@ export function serviceClient(): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!url || !key) {
-    throw new Error(
-      'Configuration Supabase absente. Renseigne NEXT_PUBLIC_SUPABASE_URL et ' +
-        'SUPABASE_SERVICE_ROLE_KEY (voir .env.example).',
+    throw new ConfigurationError(
+      'Supabase n’est pas configuré : renseigne NEXT_PUBLIC_SUPABASE_URL et ' +
+        'SUPABASE_SERVICE_ROLE_KEY dans .env.local (voir .env.example et le README).',
     )
   }
 
