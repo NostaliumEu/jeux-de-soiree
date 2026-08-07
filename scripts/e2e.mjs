@@ -200,14 +200,54 @@ verifier(
 )
 verifier('l’historique enregistre le coup', etat1.history?.length === 1)
 
-console.log('\n=== 5. Départ d’un joueur ===')
+console.log('\n=== 5. Quitter, et fermeture par l’hôte ===')
+
 const parti = await post('/api/session', {
   action: 'leave',
   sessionId: hote.sessionId,
   playerId: marc.playerId,
   token: marc.token,
 })
-verifier('un joueur peut quitter la soirée', parti.statut === 200)
+verifier('un joueur ordinaire peut quitter', parti.statut === 200)
+verifier('son départ ne ferme PAS la soirée', parti.ferme === false)
+
+const ferme = await post('/api/session', {
+  action: 'leave',
+  sessionId: hote.sessionId,
+  playerId: hote.playerId,
+  token: hote.token,
+})
+verifier('l’hôte peut quitter', ferme.statut === 200)
+verifier('son départ ferme la soirée', ferme.ferme === true)
+
+const etatSession = await lireCommeNavigateur('sessions', `id=eq.${hote.sessionId}&select=status`)
+const apres = etatSession.corps?.[0]
+verifier('la soirée est marquée close', apres?.status === 'closed', apres?.status)
+
+const relance = await post('/api/session', {
+  action: 'start',
+  sessionId: hote.sessionId,
+  playerId: lea.playerId,
+  token: lea.token,
+  gameKey: 'purple',
+})
+verifier('plus aucune manche ne peut être lancée', relance.statut === 400, relance.error)
+
+const retardataire = await post('/api/session', {
+  action: 'join',
+  code: hote.code,
+  nickname: 'Retard',
+  avatar: '🦉',
+})
+verifier('plus personne ne peut rejoindre', retardataire.statut === 400, retardataire.error)
+
+const sortie = await post('/api/session', {
+  action: 'leave',
+  sessionId: hote.sessionId,
+  playerId: lea.playerId,
+  token: lea.token,
+})
+verifier('quitter reste toujours possible', sortie.statut === 200)
 
 console.log(`\n${'='.repeat(46)}`)
 console.log(`  ${ok} verifications OK, ${ko} en echec`)

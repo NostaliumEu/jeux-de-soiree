@@ -148,7 +148,105 @@ export function Salon({ code }: { code: string }) {
         envoyer={envoyer}
         commande={commande}
       />
+
+      <Quitter
+        identite={identite}
+        hote={instantane.session.host_player_id === identite.playerId}
+        close={instantane.session.status === 'closed' || instantane.session.status === 'expired'}
+        surErreur={signaler}
+      />
     </main>
+  )
+}
+
+/**
+ * Sortie de soirée.
+ *
+ * Pour l'hôte, partir ferme la partie pour toute la table : la confirmation
+ * n'est pas une politesse, c'est un garde-fou. Le départ est aussi tenté quand
+ * l'onglet se ferme, via `sendBeacon`.
+ */
+function Quitter({
+  identite,
+  hote,
+  close,
+  surErreur,
+}: {
+  identite: Identite
+  hote: boolean
+  close: boolean
+  surErreur: (e: unknown) => void
+}) {
+  const [confirme, setConfirme] = useState(false)
+  const [enCours, setEnCours] = useState(false)
+
+  // Fermeture de l'onglet par l'hôte. `persisted` distingue une vraie
+  // disparition d'une simple mise en arrière-plan : sur téléphone, verrouiller
+  // son écran ne doit surtout pas fermer la soirée de tout le monde.
+  useEffect(() => {
+    if (!hote || close) return
+
+    const surFermeture = (e: PageTransitionEvent) => {
+      if (e.persisted) return
+      api.quitterEnFermant(identite)
+    }
+
+    window.addEventListener('pagehide', surFermeture)
+    return () => window.removeEventListener('pagehide', surFermeture)
+  }, [hote, close, identite])
+
+  const partir = async () => {
+    setEnCours(true)
+    try {
+      await api.quitter(identite)
+    } catch (e) {
+      surErreur(e)
+    } finally {
+      oublierIdentite(identite.code)
+      window.location.href = '/'
+    }
+  }
+
+  if (close) return null
+
+  return (
+    <div className="mt-auto pt-8">
+      {!confirme ? (
+        <button
+          type="button"
+          onClick={() => setConfirme(true)}
+          className="w-full py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-brume/60 transition-colors hover:text-rose"
+        >
+          Quitter la soirée
+        </button>
+      ) : (
+        <Bloc className="border-rose/60">
+          <p className="mb-3 text-center text-sm">
+            {hote ? (
+              <>
+                Tu es l’hôte : partir <strong className="text-rose">ferme la soirée</strong> pour
+                les {''}
+                autres.
+              </>
+            ) : (
+              'Tu quittes la soirée. Tu pourras revenir avec le code.'
+            )}
+          </p>
+          <div className="flex gap-2">
+            <BoutonFantome className="flex-1" onClick={() => setConfirme(false)}>
+              Annuler
+            </BoutonFantome>
+            <BoutonFantome
+              className="flex-1 border-rose text-rose"
+              disabled={enCours}
+              onClick={() => void partir()}
+            >
+              {enCours ? '…' : hote ? 'Fermer' : 'Quitter'}
+            </BoutonFantome>
+          </div>
+        </Bloc>
+      )}
+    </div>
   )
 }
 
@@ -316,14 +414,16 @@ function Corps({
   const { session, joueurs, manche, etatPublic, plateau } = instantane
   const hote = session.host_player_id === moi
 
-  if (session.status === 'expired') {
+  if (session.status === 'expired' || session.status === 'closed') {
+    const parLHote = session.status === 'closed'
     return (
       <Cascade index={0}>
         <Bloc className="text-center">
           <p className="titre mb-2 text-3xl">Soirée terminée</p>
           <p className="text-sm text-brume">
-            Plus rien ne s’est passé ici depuis un bon moment, alors elle s’est fermée toute
-            seule. Les gorgées sont effacées, l’ardoise est propre.
+            {parLHote
+              ? 'L’hôte a fermé la soirée. L’ardoise est effacée.'
+              : 'Plus rien ne s’est passé ici depuis un bon moment, alors elle s’est fermée toute seule. Les gorgées sont effacées, l’ardoise est propre.'}
           </p>
           <Link
             href="/"
@@ -494,13 +594,19 @@ function Lobby({
         </div>
       </Cascade>
 
-      {plateau && (
+      {session.mode === 'board' && (
         <Cascade index={2}>
+          <PiocheDuPlateau effectif={joueurs.length} />
+        </Cascade>
+      )}
+
+      {plateau && (
+        <Cascade index={3}>
           <BoardView plateau={plateau} joueurs={joueurs} moi={moi} />
         </Cascade>
       )}
 
-      <Cascade index={3}>
+      <Cascade index={4}>
         {!hote ? (
           <Bloc className="text-center text-sm text-brume">
             L’hôte lance la prochaine manche.
@@ -540,6 +646,58 @@ function Lobby({
         )}
       </Cascade>
     </div>
+  )
+}
+
+/**
+ * Ce que le plateau peut tirer avec l'effectif présent.
+ *
+ * Sans cet affichage, une soirée à deux voit tourner Purple et Le Faux Départ
+ * en boucle et croit à un bug, alors que Le Gardien et Tu préfères sont
+ * simplement injouables à deux. Le seuil manquant doit se lire, pas se deviner.
+ */
+function PiocheDuPlateau({ effectif }: { effectif: number }) {
+  const disponibles = CATALOGUE.filter((j) => effectif >= j.minPlayers)
+  const manquants = CATALOGUE.filter((j) => effectif < j.minPlayers)
+  const prochainSeuil = Math.min(...manquants.map((j) => j.minPlayers))
+
+  return (
+    <Bloc>
+      <Surtitre>
+        Pioche du plateau — {disponibles.length} jeu{disponibles.length > 1 ? 'x' : ''} sur{' '}
+        {CATALOGUE.length}
+      </Surtitre>
+
+      <ul className="flex flex-col gap-1.5">
+        {CATALOGUE.map((jeu) => {
+          const jouable = effectif >= jeu.minPlayers
+          return (
+            <li
+              key={jeu.key}
+              className={[
+                'flex items-center gap-2.5 text-sm',
+                jouable ? 'text-craie' : 'text-brume/50',
+              ].join(' ')}
+            >
+              <span className={jouable ? 'text-lg' : 'text-lg grayscale'}>{jeu.emoji}</span>
+              <span className="flex-1 truncate">{jeu.name}</span>
+              {!jouable && (
+                <span className="chiffre shrink-0 text-[11px] uppercase text-rose">
+                  dès {jeu.minPlayers}
+                </span>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+
+      {manquants.length > 0 && (
+        <p className="mt-3 border-t border-nuit-600 pt-3 text-xs text-brume">
+          À {effectif}, seuls {disponibles.length} mini-jeux peuvent tomber. Il en faut{' '}
+          <strong className="text-acide">{prochainSeuil}</strong> pour en débloquer d’autres.
+        </p>
+      )}
+    </Bloc>
   )
 }
 

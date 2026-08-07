@@ -8,7 +8,7 @@ export interface SessionRow {
   code: string
   host_player_id: string | null
   mode: 'free' | 'board'
-  status: 'lobby' | 'playing' | 'results' | 'finished' | 'expired'
+  status: 'lobby' | 'playing' | 'results' | 'finished' | 'expired' | 'closed'
   settings: { totalRounds?: number }
   current_round_id: string | null
   last_game_key: string | null
@@ -138,6 +138,9 @@ export function requireActive(session: SessionRow): void {
     throw new InvalidActionError(
       'Cette soirée s’est terminée faute d’activité. Ouvres-en une nouvelle.',
     )
+  }
+  if (session.status === 'closed') {
+    throw new InvalidActionError('L’hôte a fermé cette soirée.')
   }
 }
 

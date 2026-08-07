@@ -52,12 +52,36 @@ export const api = {
   },
 
   quitter(identite: Identite) {
-    return envoyer<{ ok: boolean }>('/api/session', {
+    return envoyer<{ ok: boolean; ferme: boolean }>('/api/session', {
       action: 'leave',
       sessionId: identite.sessionId,
       playerId: identite.playerId,
       token: identite.token,
     })
+  },
+
+  /**
+   * Départ « au vol », quand l'onglet se ferme.
+   *
+   * `sendBeacon` est le seul envoi que le navigateur s'engage à terminer alors
+   * que la page disparaît : un `fetch` classique serait annulé en plein vol.
+   */
+  quitterEnFermant(identite: Identite): void {
+    if (typeof navigator === 'undefined' || !navigator.sendBeacon) return
+    navigator.sendBeacon(
+      '/api/session',
+      new Blob(
+        [
+          JSON.stringify({
+            action: 'leave',
+            sessionId: identite.sessionId,
+            playerId: identite.playerId,
+            token: identite.token,
+          }),
+        ],
+        { type: 'application/json' },
+      ),
+    )
   },
 
   jouer(identite: Identite, roundId: string, payload: unknown) {

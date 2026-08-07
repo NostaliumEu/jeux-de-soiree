@@ -160,18 +160,20 @@ export async function POST(request: NextRequest) {
 
     switch (body.action) {
       case 'leave': {
+        const estHote = session.host_player_id === joueur.id
         await db.from('players').delete().eq('id', joueur.id)
 
-        // L'hôte est parti : le rôle passe au plus ancien joueur encore là,
-        // sans quoi la soirée serait bloquée pour tout le monde.
-        if (session.host_player_id === joueur.id) {
-          const restants = await getPlayers(session.id)
+        // Quand l'hôte s'en va, la soirée ferme pour tout le monde plutôt que
+        // de continuer sans celui qui la menait. Les autres voient un message
+        // explicite au lieu d'un salon qui ne répond plus.
+        if (estHote) {
           await db
             .from('sessions')
-            .update({ host_player_id: restants[0]?.id ?? null })
+            .update({ status: 'closed', last_activity_at: new Date().toISOString() })
             .eq('id', session.id)
         }
-        return NextResponse.json({ ok: true })
+
+        return NextResponse.json({ ok: true, ferme: estHote })
       }
 
       case 'close-bets': {

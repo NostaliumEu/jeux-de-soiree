@@ -13,7 +13,7 @@ export interface SessionPublique {
   code: string
   host_player_id: string | null
   mode: 'free' | 'board'
-  status: 'lobby' | 'playing' | 'results' | 'finished' | 'expired'
+  status: 'lobby' | 'playing' | 'results' | 'finished' | 'expired' | 'closed'
   settings: { totalRounds?: number }
   current_round_id: string | null
   last_game_key: string | null
