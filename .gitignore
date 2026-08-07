@@ -9,10 +9,10 @@ out/
 build/
 dist/
 
-# environnement
-.env
-.env.local
-.env*.local
+# environnement — tout sauf le modèle, qui doit rester versionné pour que
+# quiconque clone le dépôt sache quelles variables renseigner.
+.env*
+!.env.example
 
 # supabase
 supabase/.branches
@@ -30,6 +30,3 @@ npm-debug.log*
 yarn-error.log*
 .vercel
 *.tsbuildinfo
-
-.vercel
-.env*
