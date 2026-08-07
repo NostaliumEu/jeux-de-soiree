@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { InvalidActionError } from '@/engine/types'
 import { fail } from '@/server/http'
-import { authenticate, getRound, getSession } from '@/server/store'
+import { authenticate, getRound, getSession, requireActive } from '@/server/store'
 import {
   applyGameAction,
   placeBet,
@@ -49,8 +49,15 @@ export async function POST(request: NextRequest) {
   try {
     const body = schema.parse(await request.json())
 
-    const joueur = await authenticate(body.playerId, body.token)
-    const session = await getSession(body.sessionId)
+    // Ces trois lectures ne dépendent pas les unes des autres. Les enchaîner
+    // coûtait deux allers-retours de plus sur chaque coup joué.
+    const [joueur, session, round] = await Promise.all([
+      authenticate(body.playerId, body.token),
+      getSession(body.sessionId),
+      body.scope === 'board' ? Promise.resolve(null) : getRound(body.roundId),
+    ])
+
+    requireActive(session)
 
     if (joueur.session_id !== session.id) {
       throw new InvalidActionError('Tu n’appartiens pas à cette soirée.')
@@ -61,8 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    const round = await getRound(body.roundId)
-    if (round.session_id !== session.id) {
+    if (!round || round.session_id !== session.id) {
       throw new InvalidActionError('Cette manche appartient à une autre soirée.')
     }
 
@@ -71,8 +77,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    await applyGameAction(session, round, joueur.id, body.payload)
-    return NextResponse.json({ ok: true })
+    // Le nouvel état part avec la réponse : celui qui joue voit sa carte
+    // immédiatement, sans attendre le retour du temps réel.
+    const etat = await applyGameAction(session, round, joueur.id, body.payload)
+    return NextResponse.json({ ok: true, etat })
   } catch (error) {
     return fail(error)
   }

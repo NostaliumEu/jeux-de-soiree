@@ -61,7 +61,7 @@ export const api = {
   },
 
   jouer(identite: Identite, roundId: string, payload: unknown) {
-    return envoyer<{ ok: boolean }>('/api/play', {
+    return envoyer<{ ok: boolean; etat?: Record<string, unknown> }>('/api/play', {
       scope: 'game',
       sessionId: identite.sessionId,
       playerId: identite.playerId,

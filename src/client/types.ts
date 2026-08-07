@@ -13,7 +13,7 @@ export interface SessionPublique {
   code: string
   host_player_id: string | null
   mode: 'free' | 'board'
-  status: 'lobby' | 'playing' | 'results' | 'finished'
+  status: 'lobby' | 'playing' | 'results' | 'finished' | 'expired'
   settings: { totalRounds?: number }
   current_round_id: string | null
   last_game_key: string | null
@@ -36,6 +36,8 @@ export interface Instantane {
   joueurs: JoueurPublic[]
   manche: manchePublique | null
   etatPublic: Record<string, unknown> | null
+  /** Incrémenté à chaque action appliquée : sert à ne recharger que ce qui a bougé. */
+  version: number
   plateau: BoardState | null
   gorgees: Record<string, number>
 }

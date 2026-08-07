@@ -1,6 +1,6 @@
 /** Accès à la base. Aucune règle de jeu ici : uniquement de la persistance. */
 
-import type { PlayerId } from '@/engine/types'
+import { InvalidActionError, type PlayerId } from '@/engine/types'
 import { serviceClient } from './supabase'
 
 export interface SessionRow {
@@ -8,7 +8,7 @@ export interface SessionRow {
   code: string
   host_player_id: string | null
   mode: 'free' | 'board'
-  status: 'lobby' | 'playing' | 'results' | 'finished'
+  status: 'lobby' | 'playing' | 'results' | 'finished' | 'expired'
   settings: { totalRounds?: number }
   current_round_id: string | null
   last_game_key: string | null
@@ -95,34 +95,50 @@ export async function getPlayers(sessionId: string): Promise<PlayerRow[]> {
  * dans l'état public.
  */
 export async function authenticate(playerId: string, token: string): Promise<PlayerRow> {
-  const db = serviceClient()
-
-  const { data: secret, error: secretError } = await db
-    .from('player_secrets')
-    .select('token')
-    .eq('player_id', playerId)
+  // Une seule requête : le jeton est ramené par jointure plutôt qu'en deux
+  // allers-retours. Sur une action de jeu, chaque aller-retour évité se voit.
+  const { data, error } = await serviceClient()
+    .from('players')
+    .select('*, player_secrets!inner(token)')
+    .eq('id', playerId)
     .maybeSingle()
 
-  if (secretError) throw secretError
-  if (!secret || secret.token !== token) {
+  if (error) throw error
+  if (!data) throw new NotFoundError('Joueur introuvable.')
+
+  const secrets = (data as { player_secrets?: { token: string } | Array<{ token: string }> })
+    .player_secrets
+  const attendu = Array.isArray(secrets) ? secrets[0]?.token : secrets?.token
+
+  if (!attendu || attendu !== token) {
     throw new ForbiddenError('Identité invalide. Rejoins de nouveau la soirée.')
   }
 
-  const { data: player, error: playerError } = await db
-    .from('players')
-    .select('*')
-    .eq('id', playerId)
-    .maybeSingle()
+  return data as unknown as PlayerRow
+}
 
-  if (playerError) throw playerError
-  if (!player) throw new NotFoundError('Joueur introuvable.')
-
-  await db
+/**
+ * Marque la présence d'un joueur. Volontairement séparé de l'authentification :
+ * c'est une écriture, et elle n'a pas à retarder la réponse à une action de jeu.
+ */
+export async function markSeen(playerId: string): Promise<void> {
+  await serviceClient()
     .from('players')
     .update({ last_seen_at: new Date().toISOString() })
     .eq('id', playerId)
+}
 
-  return player as PlayerRow
+/**
+ * Une soirée fermée pour inactivité n'accepte plus rien. Sans ce garde-fou, un
+ * joueur qui rouvrirait son lien le lendemain relancerait une manche dans une
+ * partie que tout le monde a quittée depuis longtemps.
+ */
+export function requireActive(session: SessionRow): void {
+  if (session.status === 'expired') {
+    throw new InvalidActionError(
+      'Cette soirée s’est terminée faute d’activité. Ouvres-en une nouvelle.',
+    )
+  }
 }
 
 export async function requireHost(session: SessionRow, playerId: string): Promise<void> {

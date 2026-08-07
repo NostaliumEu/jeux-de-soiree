@@ -38,24 +38,24 @@ export function useSession(code: string) {
 
       const s = session as SessionPublique
 
-      const [joueurs, manche, plateau, gorgees] = await Promise.all([
+      // Une seule vague : l'identifiant de manche est déjà connu, il n'y a
+      // aucune raison d'attendre les autres requêtes pour lire son état.
+      const vide = Promise.resolve({ data: null, error: null })
+      const [joueurs, manche, plateau, gorgees, etat] = await Promise.all([
         db.from('players').select('*').eq('session_id', s.id).order('joined_at'),
         s.current_round_id
           ? db.from('rounds').select('*').eq('id', s.current_round_id).maybeSingle()
-          : Promise.resolve({ data: null, error: null }),
+          : vide,
         db.from('board_state').select('state').eq('session_id', s.id).maybeSingle(),
         db.from('tally').select('player_id, sips_total').eq('session_id', s.id),
+        s.current_round_id
+          ? db
+              .from('round_public_state')
+              .select('public_state, version')
+              .eq('round_id', s.current_round_id)
+              .maybeSingle()
+          : vide,
       ])
-
-      let etatPublic: Record<string, unknown> | null = null
-      if (s.current_round_id) {
-        const { data } = await db
-          .from('round_public_state')
-          .select('public_state')
-          .eq('round_id', s.current_round_id)
-          .maybeSingle()
-        etatPublic = (data?.public_state as Record<string, unknown>) ?? null
-      }
 
       const compte: Record<string, number> = {}
       for (const ligne of gorgees.data ?? []) {
@@ -68,7 +68,8 @@ export function useSession(code: string) {
         session: s,
         joueurs: (joueurs.data ?? []) as JoueurPublic[],
         manche: (manche.data as manchePublique | null) ?? null,
-        etatPublic,
+        etatPublic: (etat.data?.public_state as Record<string, unknown>) ?? null,
+        version: (etat.data?.version as number) ?? 0,
         plateau: (plateau.data?.state as BoardState | null) ?? null,
         gorgees: compte,
       })
@@ -140,10 +141,16 @@ export function useSession(code: string) {
   }, [roundId, charger])
 
   // Filet de sécurité : si le socket meurt en silence (téléphone verrouillé,
-  // changement de réseau), on resynchronise quand même.
+  // changement de réseau), on resynchronise quand même. Inutile de le faire
+  // quand l'écran est éteint : ça ne ferait que vider la batterie.
   useEffect(() => {
-    const battement = setInterval(() => void charger(), 12_000)
-    const reveil = () => void charger()
+    const battement = setInterval(() => {
+      if (document.visibilityState === 'visible') void charger()
+    }, 20_000)
+
+    const reveil = () => {
+      if (document.visibilityState === 'visible') void charger()
+    }
     document.addEventListener('visibilitychange', reveil)
     window.addEventListener('online', reveil)
 
@@ -154,5 +161,17 @@ export function useSession(code: string) {
     }
   }, [charger])
 
-  return { instantane, erreur, chargement, recharger: charger }
+  /**
+   * Applique sans délai l'état renvoyé par le serveur au joueur qui vient
+   * d'agir. Sans ça, il verrait sa propre carte avec un temps de retard : le
+   * temps que l'écriture parte en base, que Realtime la diffuse et qu'on
+   * recharge l'instantané.
+   */
+  const appliquerEtat = useCallback((etat: Record<string, unknown>) => {
+    setInstantane((precedent) =>
+      precedent ? { ...precedent, etatPublic: etat, version: precedent.version + 1 } : precedent,
+    )
+  }, [])
+
+  return { instantane, erreur, chargement, recharger: charger, appliquerEtat }
 }

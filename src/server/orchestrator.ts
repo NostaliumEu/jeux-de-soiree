@@ -4,6 +4,7 @@
  * contente d'appeler les machines et de persister leur sortie.
  */
 
+import { after } from 'next/server'
 import { createRng } from '@/engine/rng'
 import { getGame } from '@/engine/registry'
 import { pickFormat, pickGame, pickParticipants } from '@/engine/session'
@@ -30,6 +31,7 @@ import {
   getRound,
   getRoundState,
   logAction,
+  markSeen,
   saveBoardState,
   savePlayerViews,
   saveRoundState,
@@ -277,7 +279,7 @@ export async function applyGameAction(
   round: RoundRow,
   actor: PlayerId,
   payload: unknown,
-): Promise<void> {
+): Promise<unknown> {
   if (round.status !== 'playing') {
     throw new InvalidActionError(
       round.status === 'betting' ? 'La manche n’a pas encore commencé.' : 'Manche terminée.',
@@ -311,15 +313,30 @@ export async function applyGameAction(
     actor,
   })
 
-  await saveRoundState(round.id, outcome.state.public, outcome.state.secret, version + 1)
-  await writeViews(round.id, jeu.machine, outcome.state, round.participants)
-  await logAction(round.id, actor, payload)
+  // Ces deux écritures sont indépendantes : les enchaîner coûtait un
+  // aller-retour de plus à chaque coup joué.
+  await Promise.all([
+    saveRoundState(round.id, outcome.state.public, outcome.state.secret, version + 1),
+    writeViews(round.id, jeu.machine, outcome.state, round.participants),
+  ])
 
   if (outcome.result) {
     await finishRound(session, round, outcome.result)
-  } else {
-    await touchSession(session.id)
   }
+
+  // Le journal et l'horodatage n'intéressent pas le joueur qui attend sa carte :
+  // ils partent après l'envoi de la réponse plutôt que devant elle.
+  after(async () => {
+    await Promise.all([
+      logAction(round.id, actor, payload),
+      markSeen(actor),
+      ...(outcome.result ? [] : [touchSession(session.id)]),
+    ])
+  })
+
+  // Rendu à l'appelant pour qu'il affiche le résultat immédiatement, sans
+  // attendre l'aller-retour du temps réel.
+  return outcome.state.public
 }
 
 function deltaSips(

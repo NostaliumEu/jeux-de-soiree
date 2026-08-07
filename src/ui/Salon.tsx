@@ -14,7 +14,7 @@ import { ECRANS } from './ecrans'
 import { Bloc, Bouton, BoutonFantome, Cascade, Pastille, Surtitre } from './primitives'
 
 export function Salon({ code }: { code: string }) {
-  const { instantane, erreur, chargement } = useSession(code)
+  const { instantane, erreur, chargement, appliquerEtat } = useSession(code)
   const decalage = useHorloge()
   const [identite, setIdentite] = useState<Identite | null>(null)
   const [identitePrete, setIdentitePrete] = useState(false)
@@ -42,7 +42,10 @@ export function Salon({ code }: { code: string }) {
   const mancheId = instantane?.manche?.id ?? null
 
   // La vue personnelle (mon choix, mon vote) ne transite pas par le temps réel :
-  // elle est servie par l'API contre présentation du jeton.
+  // elle est servie par l'API contre présentation du jeton. On ne la redemande
+  // qu'au changement de manche ou d'état — la relire à chaque rafraîchissement
+  // ajoutait un aller-retour pour rien.
+  const version = instantane?.version ?? 0
   useEffect(() => {
     if (!identite || !mancheId) {
       setVuePrivee(null)
@@ -55,7 +58,7 @@ export function Salon({ code }: { code: string }) {
     return () => {
       annule = true
     }
-  }, [identite, mancheId, instantane])
+  }, [identite, mancheId, version])
 
   const echeance = (instantane?.etatPublic?.['deadlineAt'] as number | null) ?? null
 
@@ -78,12 +81,15 @@ export function Salon({ code }: { code: string }) {
     async (payload: unknown) => {
       if (!identite || !mancheId) return
       try {
-        await api.jouer(identite, mancheId, payload)
+        const reponse = await api.jouer(identite, mancheId, payload)
+        // Le serveur renvoie le nouvel état : on l'affiche tout de suite plutôt
+        // que d'attendre qu'il nous revienne par le temps réel.
+        if (reponse.etat) appliquerEtat(reponse.etat)
       } catch (e) {
         signaler(e)
       }
     },
-    [identite, mancheId, signaler],
+    [identite, mancheId, signaler, appliquerEtat],
   )
 
   const commande = useCallback(
@@ -309,6 +315,26 @@ function Corps({
   const moi = identite.playerId
   const { session, joueurs, manche, etatPublic, plateau } = instantane
   const hote = session.host_player_id === moi
+
+  if (session.status === 'expired') {
+    return (
+      <Cascade index={0}>
+        <Bloc className="text-center">
+          <p className="titre mb-2 text-3xl">Soirée terminée</p>
+          <p className="text-sm text-brume">
+            Plus rien ne s’est passé ici depuis un bon moment, alors elle s’est fermée toute
+            seule. Les gorgées sont effacées, l’ardoise est propre.
+          </p>
+          <Link
+            href="/"
+            className="mt-5 inline-block rounded-2xl border-2 border-acide px-5 py-3 text-sm font-bold uppercase tracking-wide text-acide"
+          >
+            En ouvrir une nouvelle
+          </Link>
+        </Bloc>
+      </Cascade>
+    )
+  }
 
   const enAttente = plateau?.pendings.find((p) => p.player === moi)
   if (enAttente) {

@@ -11,6 +11,7 @@ import {
   getPlayers,
   getSession,
   getSessionByCode,
+  requireActive,
   requireHost,
   type SessionRow,
 } from '@/server/store'
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
 
     if (body.action === 'join') {
       const session = await getSessionByCode(body.code)
+      requireActive(session)
       const joueurs = await getPlayers(session.id)
 
       if (joueurs.length >= MAX_PLAYERS_PER_SESSION) {
@@ -128,20 +130,33 @@ export async function POST(request: NextRequest) {
       }
 
       const { playerId, token } = await createPlayer(session.id, body.nickname, body.avatar)
-      if (!session.host_player_id) {
-        await db.from('sessions').update({ host_player_id: playerId }).eq('id', session.id)
-      }
+
+      // Une arrivée est une activité : sans ça, une soirée où les gens
+      // continuent d'affluer pourrait expirer pendant qu'elle se remplit.
+      await db
+        .from('sessions')
+        .update({
+          last_activity_at: new Date().toISOString(),
+          ...(session.host_player_id ? {} : { host_player_id: playerId }),
+        })
+        .eq('id', session.id)
 
       return NextResponse.json({ sessionId: session.id, code: session.code, playerId, token })
     }
 
-    // À partir d'ici, toute action exige une identité vérifiée.
-    const joueur = await authenticate(body.playerId, body.token)
-    const session = await getSession(body.sessionId)
+    // À partir d'ici, toute action exige une identité vérifiée. Les deux
+    // lectures sont indépendantes : on ne les enchaîne pas.
+    const [joueur, session] = await Promise.all([
+      authenticate(body.playerId, body.token),
+      getSession(body.sessionId),
+    ])
 
     if (joueur.session_id !== session.id) {
       throw new InvalidActionError('Tu n’appartiens pas à cette soirée.')
     }
+
+    // Quitter reste possible sur une soirée close ; relancer une manche non.
+    if (body.action !== 'leave') requireActive(session)
 
     switch (body.action) {
       case 'leave': {
