@@ -5,6 +5,9 @@ import { PurpleEcran } from '@/games/purple/Screen'
 import { FauxDepartEcran } from '@/games/faux-depart/Screen'
 import { GardienEcran } from '@/games/gardien/Screen'
 import { TuPreferesEcran } from '@/games/tu-preferes/Screen'
+import { ImposteurEcran } from '@/games/imposteur/Screen'
+import { BombeEcran } from '@/games/bombe/Screen'
+import { SprintEcran } from '@/games/sprint/Screen'
 import type { EcranProps } from '@/client/types'
 
 /**
@@ -25,4 +28,7 @@ export const ECRANS: Record<string, Ecran> = {
   'faux-depart': adapter(FauxDepartEcran),
   gardien: adapter(GardienEcran),
   'tu-preferes': adapter(TuPreferesEcran),
+  imposteur: adapter(ImposteurEcran),
+  bombe: adapter(BombeEcran),
+  sprint: adapter(SprintEcran),
 }

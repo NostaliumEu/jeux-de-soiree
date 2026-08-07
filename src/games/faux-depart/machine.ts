@@ -64,6 +64,12 @@ export interface FauxDepartPublic extends BasePublicState {
   history: FauxDepartAttempt[]
   /** Le dernier essai décisif a-t-il été perdu sur un faux départ. */
   decidedByFalseStart: boolean
+  /**
+   * Contrairement aux autres jeux, rien ne se boit avant le dénouement : ce
+   * compteur reste à zéro jusqu'au dernier essai. Il n'en est pas moins
+   * nécessaire, sinon les écrans n'auraient aucun moyen d'annoncer la sanction.
+   */
+  sips: Record<PlayerId, number>
 }
 
 export type FauxDepartState = GameState<FauxDepartPublic, Record<string, never>>
@@ -155,6 +161,7 @@ export const fauxDepartMachine: GameMachine<FauxDepartState, FauxDepartAction> =
         taps: {},
         history: [],
         decidedByFalseStart: false,
+        sips: Object.fromEntries(duellists.map((id) => [id, 0])),
       },
       secret: {},
     }
@@ -213,7 +220,7 @@ export const fauxDepartMachine: GameMachine<FauxDepartState, FauxDepartAction> =
 
     let nextPublic: FauxDepartPublic
     if (termine) {
-      nextPublic = {
+      const clos: FauxDepartPublic = {
         ...pub,
         phase: 'over',
         deadlineAt: null,
@@ -222,6 +229,8 @@ export const fauxDepartMachine: GameMachine<FauxDepartState, FauxDepartAction> =
         history: [...pub.history, essai],
         decidedByFalseStart: verdict.falseStart,
       }
+      // La sanction ne se connaît qu'une fois le duel tranché.
+      nextPublic = { ...clos, sips: buildResult(clos).sips }
     } else {
       // Un seul tirage : `greenAt` et la date limite doivent décrire le même essai.
       const greenAt = nextGreen(ctx.now, ctx.rng)

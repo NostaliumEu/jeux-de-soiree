@@ -46,13 +46,22 @@ describe('generateCode', () => {
 })
 
 describe('registre', () => {
-  it('inscrit les quatre jeux de la V1', () => {
-    expect(GAMES.map((g) => g.definition.key).sort()).toEqual([
-      'faux-depart',
-      'gardien',
-      'purple',
-      'tu-preferes',
-    ])
+  it('inscrit des jeux aux clés uniques et bien formées', () => {
+    const cles = GAMES.map((g) => g.definition.key)
+    expect(new Set(cles).size).toBe(cles.length)
+    for (const { definition } of GAMES) {
+      expect(definition.key).toMatch(/^[a-z][a-z-]*$/)
+      expect(definition.formats.length).toBeGreaterThan(0)
+      expect(definition.minPlayers).toBeGreaterThanOrEqual(2)
+    }
+  })
+
+  it('contient bien les jeux attendus', () => {
+    // Volontairement une inclusion et non une égalité : ce test ne doit pas
+    // casser à chaque jeu ajouté, seulement si l'un disparaît.
+    for (const attendu of ['purple', 'faux-depart', 'gardien', 'tu-preferes']) {
+      expect(GAMES.map((g) => g.definition.key)).toContain(attendu)
+    }
   })
 
   it('retrouve un jeu par sa clé', () => {
@@ -71,8 +80,17 @@ describe('eligibleGames', () => {
     expect(cles).not.toContain('tu-preferes')
   })
 
-  it('n’exclut rien à six joueurs', () => {
-    expect(eligibleGames(6, false)).toHaveLength(4)
+  it('n’exclut que sur le seuil de joueurs', () => {
+    const attendu = GAMES.filter((g) => g.definition.minPlayers <= 6).length
+    expect(eligibleGames(6, false)).toHaveLength(attendu)
+  })
+
+  it('n’offre que des jeux réellement jouables à l’effectif donné', () => {
+    for (let effectif = 2; effectif <= 8; effectif++) {
+      for (const jeu of eligibleGames(effectif, false)) {
+        expect(effectif).toBeGreaterThanOrEqual(jeu.definition.minPlayers)
+      }
+    }
   })
 })
 
@@ -84,11 +102,11 @@ describe('pickGame', () => {
     }
   })
 
-  it('retombe sur l’unique jeu éligible même s’il vient d’être joué', () => {
-    // À deux joueurs, seuls Purple et Le Faux Départ tiennent ; avec un seul
-    // éligible on ne peut plus éviter la répétition.
-    const choisi = pickGame(2, 'purple', createRng('repli'), true)
-    expect(choisi.definition.key).toBe('faux-depart')
+  it('ne propose jamais un jeu hors de portée de l’effectif', () => {
+    for (let i = 0; i < 60; i++) {
+      const choisi = pickGame(2, null, createRng(`deux-${i}`), true)
+      expect(choisi.definition.minPlayers).toBeLessThanOrEqual(2)
+    }
   })
 
   it('jette s’il n’existe aucun jeu jouable', () => {

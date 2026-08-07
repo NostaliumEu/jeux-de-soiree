@@ -16,6 +16,17 @@ const COULEURS: Record<CellKind, { fond: string; trait: string }> = {
 const CENTRE = 160
 const RAYON = 126
 
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
+
+/**
+ * Le journal du plateau est produit par une machine pure : elle ne connaît que
+ * des identifiants, jamais les pseudos. La substitution se fait donc ici, à
+ * l'affichage — sans quoi on lirait « 3f2a9c1e-… ramasse une étoile ».
+ */
+function avecLesPrenoms(ligne: string, joueurs: JoueurPublic[]): string {
+  return ligne.replace(UUID, (id) => nomDe(joueurs, id))
+}
+
 function positionCase(index: number): { x: number; y: number } {
   const angle = (index / BOARD_SIZE) * Math.PI * 2 - Math.PI / 2
   return { x: CENTRE + Math.cos(angle) * RAYON, y: CENTRE + Math.sin(angle) * RAYON }
@@ -162,7 +173,7 @@ export function BoardView({
               .slice(-6)
               .reverse()
               .map((ligne, i) => (
-                <li key={i}>{ligne}</li>
+                <li key={i}>{avecLesPrenoms(ligne, joueurs)}</li>
               ))}
           </ul>
         </Bloc>

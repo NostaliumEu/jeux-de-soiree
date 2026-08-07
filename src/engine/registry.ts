@@ -14,6 +14,12 @@ import { definition as gardienDefinition } from '@/games/gardien/definition'
 import { gardienMachine } from '@/games/gardien/machine'
 import { definition as tuPreferesDefinition } from '@/games/tu-preferes/definition'
 import { tuPreferesMachine } from '@/games/tu-preferes/machine'
+import { definition as imposteurDefinition } from '@/games/imposteur/definition'
+import { imposteurMachine } from '@/games/imposteur/machine'
+import { definition as bombeDefinition } from '@/games/bombe/definition'
+import { bombeMachine } from '@/games/bombe/machine'
+import { definition as sprintDefinition } from '@/games/sprint/definition'
+import { sprintMachine } from '@/games/sprint/machine'
 import type { AnyGameModule, GameDefinition, GameMachine, GameState } from './types'
 
 /**
@@ -32,6 +38,9 @@ export const GAMES: readonly AnyGameModule[] = [
   register(fauxDepartDefinition, fauxDepartMachine),
   register(gardienDefinition, gardienMachine),
   register(tuPreferesDefinition, tuPreferesMachine),
+  register(imposteurDefinition, imposteurMachine),
+  register(bombeDefinition, bombeMachine),
+  register(sprintDefinition, sprintMachine),
 ]
 
 export const GAME_DEFINITIONS: readonly GameDefinition[] = GAMES.map((g) => g.definition)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSession } from '@/client/useSession'
 import { useHorloge } from '@/client/useHorloge'
@@ -10,6 +10,7 @@ import { AVATARS } from '@/shared/avatars'
 import { CATALOGUE, ficheDe } from '@/shared/jeux'
 import { TOURNEE_SIPS } from '@/modes/board/cells'
 import { BoardView } from '@/modes/board/BoardView'
+import { AnnonceGorgees, type Buveur } from './AnnonceGorgees'
 import { ECRANS } from './ecrans'
 import { Bloc, Bouton, BoutonFantome, Cascade, Pastille, Surtitre } from './primitives'
 
@@ -20,6 +21,7 @@ export function Salon({ code }: { code: string }) {
   const [identitePrete, setIdentitePrete] = useState(false)
   const [vuePrivee, setVuePrivee] = useState<unknown>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [buveurs, setBuveurs] = useState<Buveur[]>([])
 
   useEffect(() => {
     setIdentite(lireIdentite(code))
@@ -40,12 +42,12 @@ export function Salon({ code }: { code: string }) {
   )
 
   const mancheId = instantane?.manche?.id ?? null
+  const version = instantane?.version ?? 0
 
   // La vue personnelle (mon choix, mon vote) ne transite pas par le temps réel :
   // elle est servie par l'API contre présentation du jeton. On ne la redemande
   // qu'au changement de manche ou d'état — la relire à chaque rafraîchissement
   // ajoutait un aller-retour pour rien.
-  const version = instantane?.version ?? 0
   useEffect(() => {
     if (!identite || !mancheId) {
       setVuePrivee(null)
@@ -76,6 +78,39 @@ export function Salon({ code }: { code: string }) {
 
     return () => clearTimeout(timer)
   }, [echeance, identite, mancheId, decalage, instantane?.manche?.status])
+
+  /**
+   * Détection des gorgées à annoncer.
+   *
+   * On compare le compteur de la manche courante à sa valeur précédente. Au
+   * changement de manche on se contente de poser la référence, sans rien
+   * annoncer : sinon toute reprise de partie déclencherait une pop-up pour des
+   * gorgées déjà bues.
+   */
+  const referenceSips = useRef<{ manche: string | null; valeurs: Record<string, number> }>({
+    manche: null,
+    valeurs: {},
+  })
+
+  useEffect(() => {
+    const courant = (instantane?.etatPublic?.['sips'] as Record<string, number> | undefined) ?? {}
+
+    if (referenceSips.current.manche !== mancheId) {
+      referenceSips.current = { manche: mancheId, valeurs: { ...courant } }
+      return
+    }
+
+    const nouveaux: Buveur[] = []
+    for (const [id, total] of Object.entries(courant)) {
+      const avant = referenceSips.current.valeurs[id] ?? 0
+      if (total > avant) nouveaux.push({ id, montant: total - avant })
+    }
+
+    if (nouveaux.length > 0) {
+      referenceSips.current.valeurs = { ...courant }
+      setBuveurs(nouveaux)
+    }
+  }, [version, mancheId, instantane])
 
   const envoyer = useCallback(
     async (payload: unknown) => {
@@ -148,6 +183,15 @@ export function Salon({ code }: { code: string }) {
         envoyer={envoyer}
         commande={commande}
       />
+
+      {buveurs.length > 0 && (
+        <AnnonceGorgees
+          buveurs={buveurs}
+          moi={identite.playerId}
+          joueurs={instantane.joueurs}
+          surFermeture={() => setBuveurs([])}
+        />
+      )}
 
       <Quitter
         identite={identite}
