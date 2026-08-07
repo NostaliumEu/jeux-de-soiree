@@ -197,13 +197,32 @@ export async function savePlayerViews(
 ): Promise<void> {
   if (views.length === 0) return
 
-  const { error } = await serviceClient()
-    .from('player_views')
-    .upsert(
-      views.map((v) => ({ round_id: roundId, player_id: v.playerId, payload: v.payload })),
-    )
+  // Tous les jeux n'ont pas de secret par joueur : Purple cache son paquet à
+  // tout le monde, donc sa vue privée est nulle. Plutôt que d'écrire une ligne
+  // vide — que la contrainte `not null` rejetterait — on n'écrit rien, et on
+  // supprime une éventuelle vue devenue obsolète en cours de manche.
+  const aEcrire = views.filter((v) => v.payload !== null && v.payload !== undefined)
+  const aSupprimer = views.filter((v) => v.payload === null || v.payload === undefined)
 
-  if (error) throw error
+  const db = serviceClient()
+
+  if (aEcrire.length > 0) {
+    const { error } = await db
+      .from('player_views')
+      .upsert(
+        aEcrire.map((v) => ({ round_id: roundId, player_id: v.playerId, payload: v.payload })),
+      )
+    if (error) throw error
+  }
+
+  if (aSupprimer.length > 0) {
+    const { error } = await db
+      .from('player_views')
+      .delete()
+      .eq('round_id', roundId)
+      .in('player_id', aSupprimer.map((v) => v.playerId))
+    if (error) throw error
+  }
 }
 
 export async function getPlayerView(roundId: string, playerId: string): Promise<unknown> {
