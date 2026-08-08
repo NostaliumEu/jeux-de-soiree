@@ -8,9 +8,10 @@
 --
 -- On raisonne donc sur le silence plutôt que sur un événement : le navigateur
 -- de l'hôte signale sa présence toutes les trente secondes, et une soirée dont
--- l'hôte n'a plus donné signe de vie depuis quatre minutes est considérée
--- abandonnée. Un rechargement, une coupure de réseau ou un tunnel ne coûtent
--- que quelques secondes de silence : bien en deçà du seuil.
+-- l'hôte n'a plus donné signe de vie depuis dix minutes est considérée
+-- abandonnée. Un rechargement, une coupure de réseau, un tunnel ou une appli
+-- consultée entre deux tours ne coûtent que quelques secondes à quelques
+-- minutes de silence : bien en deçà du seuil.
 
 create or replace function close_orphan_sessions() returns void
 language sql
@@ -25,7 +26,7 @@ as $$
        select 1
        from players p
        where p.id = s.host_player_id
-         and p.last_seen_at < now() - interval '4 minutes'
+         and p.last_seen_at < now() - interval '10 minutes'
      );
 $$;
 

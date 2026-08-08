@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { api } from './api'
 import type { Identite } from './types'
 
-/** Le serveur referme une soirée après 4 minutes de silence de son hôte. */
+/** Le serveur referme une soirée après 10 minutes de silence de son hôte. */
 export const PRESENCE_INTERVAL_MS = 30_000
 
 /**
@@ -24,10 +24,14 @@ export function useSignalDePresence(identite: Identite | null, actif: boolean): 
   useEffect(() => {
     if (!identite || !actif) return
 
+    // On bat aussi en arrière-plan.
+    //
+    // Se taire dès que l'onglet perd le premier plan reviendrait à refermer la
+    // soirée de quelqu'un parti lire un message : sur téléphone, on quitte
+    // l'application dix fois par soirée sans quitter la partie. Les navigateurs
+    // ralentissent ces minuteries en arrière-plan, ce qui suffit largement face
+    // à un seuil de dix minutes.
     const signaler = () => {
-      // Inutile de crier depuis un écran éteint : la soirée est en pause, pas
-      // abandonnée. Le battement reprend au réveil, bien avant le seuil.
-      if (document.visibilityState !== 'visible') return
       void api.presence(identite).catch(() => {})
     }
 
