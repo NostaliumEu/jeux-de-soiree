@@ -61,27 +61,17 @@ export const api = {
   },
 
   /**
-   * Départ « au vol », quand l'onglet se ferme.
+   * Signal de présence de l'hôte.
    *
-   * `sendBeacon` est le seul envoi que le navigateur s'engage à terminer alors
-   * que la page disparaît : un `fetch` classique serait annulé en plein vol.
+   * Remplace l'ancien départ « au vol » sur `pagehide`, qui se déclenchait tout
+   * autant sur un rechargement de page et refermait la soirée pour tout le
+   * monde. On signale une présence plutôt que de deviner un départ.
    */
-  quitterEnFermant(identite: Identite): void {
-    if (typeof navigator === 'undefined' || !navigator.sendBeacon) return
-    navigator.sendBeacon(
-      '/api/session',
-      new Blob(
-        [
-          JSON.stringify({
-            action: 'leave',
-            sessionId: identite.sessionId,
-            playerId: identite.playerId,
-            token: identite.token,
-          }),
-        ],
-        { type: 'application/json' },
-      ),
-    )
+  presence(identite: Identite) {
+    return envoyer<{ ok: boolean }>('/api/presence', {
+      playerId: identite.playerId,
+      token: identite.token,
+    })
   },
 
   jouer(identite: Identite, roundId: string, payload: unknown) {

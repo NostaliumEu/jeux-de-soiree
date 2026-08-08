@@ -29,11 +29,12 @@ const FONDS: Record<Couleur, string> = {
 function CarteVue({
   carte,
   taille = 'main',
-  eteinte = false,
+  jouable = true,
 }: {
   carte: CarteUno
   taille?: 'main' | 'dessus'
-  eteinte?: boolean
+  /** Seule l'ACCENTUATION change : la couleur, elle, reste toujours lisible. */
+  jouable?: boolean
 }) {
   const grande = taille === 'dessus'
   const fond = carte.couleur ? FONDS[carte.couleur] : '#1b1230'
@@ -43,11 +44,15 @@ function CarteVue({
       className={[
         'relative flex shrink-0 flex-col items-center justify-center rounded-xl border-2 font-bold',
         grande ? 'h-32 w-22 text-4xl' : 'h-20 w-14 text-2xl',
-        eteinte ? 'opacity-35 grayscale' : '',
+        // Une carte injouable garde SA COULEUR : la désaturer empêchait de voir
+        // ce qu'on a en main, donc de préparer un changement de couleur. Seul
+        // le relief distingue ce qu'on peut poser de ce qu'on ne peut pas.
+        !grande && jouable ? '-translate-y-1.5 ring-3 ring-craie' : '',
+        !grande && !jouable ? 'opacity-70' : '',
       ].join(' ')}
       style={{
         backgroundColor: fond,
-        borderColor: 'rgba(255,255,255,0.85)',
+        borderColor: jouable ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
         color: '#fff',
         boxShadow: grande ? '5px 5px 0 0 #07040d' : '3px 3px 0 0 #07040d',
         width: grande ? '5.5rem' : undefined,
@@ -260,13 +265,29 @@ export function UnoEcran({
             </button>
           )}
 
+          {/* L'action de pioche est placée AVANT la main, et non après.
+              Derrière une rangée de sept cartes qui défile horizontalement,
+              elle passait inaperçue — au point qu'on croyait ne pas pouvoir
+              piocher du tout. */}
+          {monTour && etat.phase === 'tour' && (
+            <Bouton
+              teinte={etat.pileEnAttente > 0 ? 'rose' : 'cyan'}
+              disabled={enCours}
+              onClick={() => void agir({ type: 'draw' })}
+            >
+              {etat.pileEnAttente > 0
+                ? `Ramasser les ${etat.pileEnAttente} cartes`
+                : 'Piocher et passer'}
+            </Bouton>
+          )}
+
           {/* Ma main — seulement si je suis dans la partie. Un spectateur n'a
               pas de cartes, et afficher « 0 carte » l'aurait laissé croire à un
               bug plutôt qu'à son statut. */}
           {participe && (
             <div>
               <Surtitre>Ta main — {main.length} cartes</Surtitre>
-              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
+              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 pt-3">
                 {main.map((carte, index) => {
                   const ok = monTour && etat.phase === 'tour' && jouable(carte)
                   return (
@@ -277,22 +298,17 @@ export function UnoEcran({
                       onClick={() => poser(index, carte)}
                       className={ok ? 'transition-transform active:scale-95' : 'cursor-default'}
                     >
-                      <CarteVue carte={carte} eteinte={!ok} />
+                      <CarteVue carte={carte} jouable={ok} />
                     </button>
                   )
                 })}
               </div>
+              {monTour && etat.phase === 'tour' && (
+                <p className="text-center text-xs text-brume">
+                  Les cartes surélevées sont celles que tu peux poser.
+                </p>
+              )}
             </div>
-          )}
-
-          {monTour && etat.phase === 'tour' && (
-            <Bouton
-              teinte={etat.pileEnAttente > 0 ? 'rose' : 'brume'}
-              disabled={enCours}
-              onClick={() => void agir({ type: 'draw' })}
-            >
-              {etat.pileEnAttente > 0 ? `Ramasser ${etat.pileEnAttente} cartes` : 'Piocher'}
-            </Bouton>
           )}
         </>
       )}

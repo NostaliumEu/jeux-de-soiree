@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSession } from '@/client/useSession'
 import { useHorloge } from '@/client/useHorloge'
+import { useSignalDePresence } from '@/client/usePresence'
 import { api, ecrireIdentite, lireIdentite, oublierIdentite } from '@/client/api'
 import { avatarDe, nomDe, type Identite, type Instantane } from '@/client/types'
 import { AVATARS } from '@/shared/avatars'
@@ -207,8 +208,9 @@ export function Salon({ code }: { code: string }) {
  * Sortie de soirée.
  *
  * Pour l'hôte, partir ferme la partie pour toute la table : la confirmation
- * n'est pas une politesse, c'est un garde-fou. Le départ est aussi tenté quand
- * l'onglet se ferme, via `sendBeacon`.
+ * n'est pas une politesse, c'est un garde-fou. Un départ non annoncé — onglet
+ * fermé, téléphone éteint — se détecte par l'arrêt du signal de présence, pas
+ * par un événement du navigateur.
  */
 function Quitter({
   identite,
@@ -224,20 +226,20 @@ function Quitter({
   const [confirme, setConfirme] = useState(false)
   const [enCours, setEnCours] = useState(false)
 
-  // Fermeture de l'onglet par l'hôte. `persisted` distingue une vraie
-  // disparition d'une simple mise en arrière-plan : sur téléphone, verrouiller
-  // son écran ne doit surtout pas fermer la soirée de tout le monde.
-  useEffect(() => {
-    if (!hote || close) return
+  // Tant que l’hôte est là, il le fait savoir.
+  useSignalDePresence(identite, hote && !close)
 
-    const surFermeture = (e: PageTransitionEvent) => {
-      if (e.persisted) return
-      api.quitterEnFermant(identite)
-    }
-
-    window.addEventListener('pagehide', surFermeture)
-    return () => window.removeEventListener('pagehide', surFermeture)
-  }, [hote, close, identite])
+  // Il n'y a PLUS de fermeture automatique sur `pagehide`.
+  //
+  // L'événement se déclenche à la fermeture de l'onglet, mais tout autant sur
+  // un simple rechargement ou une navigation interne, et `persisted` ne permet
+  // pas de les distinguer. Résultat : appuyer sur F5 éjectait l'hôte et
+  // refermait la soirée de tout le monde. Une partie ne doit pas mourir parce
+  // que quelqu'un a rafraîchi sa page.
+  //
+  // Le départ de l'hôte se détecte désormais par son silence : son navigateur
+  // signale sa présence régulièrement, et la base referme les soirées dont
+  // l'hôte a disparu depuis plusieurs minutes. Voir `useSignalDePresence`.
 
   const partir = async () => {
     setEnCours(true)
