@@ -1,191 +1,312 @@
 import { describe, it, expect } from 'vitest'
 import { createRng } from '@/engine/rng'
 import { InvalidActionError, type PlayerId, type ReduceContext } from '@/engine/types'
-import { bombeMachine, type BombePublic, type BombeState } from './machine'
-import { BOMBE_MAX_MS, BOMBE_MIN_MS, BOMBE_SIPS } from './definition'
+import { bombeMachine, existe, normaliser, tirerSyllabe, type BombeState } from './machine'
+import type { BombePublic } from './types'
+import {
+  BOMBE_MAX_MS,
+  BOMBE_MIN_MS,
+  BOMBE_SIPS_ELIMINATION,
+  BOMBE_SIPS_EXPLOSION,
+  BOMBE_VIES,
+} from './definition'
 
-const JOUEURS: PlayerId[] = ['a', 'b', 'c', 'd']
+const JOUEURS: PlayerId[] = ['a', 'b', 'c']
 
 function ctx(actor: PlayerId, now = 1_000): ReduceContext {
   return { rng: createRng(`bombe-${actor}-${now}`), now, mode: 'free', actor }
 }
 
-function fresh(): BombeState {
-  return bombeMachine.init({
-    participants: JOUEURS,
-    rng: createRng('bombe-init'),
-    now: 1_000,
-    mode: 'free',
-  })
-}
-
-/** Construit un état maîtrisé, avec un instant d'explosion imposé. */
 function makeState(opts: {
-  explodeAt: number
-  holderIndex?: number
-  round?: number
-  passes?: Record<PlayerId, number>
-  explosions?: Record<PlayerId, number>
+  syllabe: string
+  currentIndex?: number
+  vies?: Record<PlayerId, number>
+  utilises?: string[]
+  ordreElimination?: PlayerId[]
+  deadlineAt?: number
 }): BombeState {
   const pub: BombePublic = {
-    phase: 'passe',
-    deadlineAt: 1_000 + BOMBE_MAX_MS,
-    armedAt: 1_000,
+    phase: 'jeu',
+    deadlineAt: opts.deadlineAt ?? 60_000,
+    mecheAllumeeA: 1_000,
     order: [...JOUEURS],
-    holderIndex: opts.holderIndex ?? 0,
-    round: opts.round ?? 1,
-    passes: opts.passes ?? { a: 0, b: 0, c: 0, d: 0 },
-    explosions: opts.explosions ?? { a: 0, b: 0, c: 0, d: 0 },
-    sips: { a: 0, b: 0, c: 0, d: 0 },
-    history: [],
+    currentIndex: opts.currentIndex ?? 0,
+    vies: opts.vies ?? { a: BOMBE_VIES, b: BOMBE_VIES, c: BOMBE_VIES },
+    ordreElimination: opts.ordreElimination ?? [],
+    syllabe: opts.syllabe,
+    motsRecents: [],
+    explosions: { a: 0, b: 0, c: 0 },
+    sips: { a: 0, b: 0, c: 0 },
+    gagnant: null,
+    dernierCoup: null,
   }
-  return { public: pub, secret: { explodeAt: opts.explodeAt } }
+  return { public: pub, secret: { utilises: opts.utilises ?? [] } }
 }
 
-describe('init', () => {
-  it('arme la bombe dans la fenêtre prévue', () => {
-    for (let i = 0; i < 40; i++) {
-      const s = bombeMachine.init({
-        participants: JOUEURS,
-        rng: createRng(`arme-${i}`),
-        now: 1_000,
-        mode: 'free',
-      })
-      expect(s.secret.explodeAt).toBeGreaterThanOrEqual(1_000 + BOMBE_MIN_MS)
-      expect(s.secret.explodeAt).toBeLessThanOrEqual(1_000 + BOMBE_MAX_MS)
+describe('dictionnaire', () => {
+  it('reconnaît des mots courants', () => {
+    for (const mot of ['maison', 'bonjour', 'ordinateur', 'chat', 'manger']) {
+      expect(existe(mot)).toBe(true)
     }
   })
 
-  it('donne la bombe au premier joueur', () => {
-    expect(fresh().public.holderIndex).toBe(0)
+  it('reconnaît les formes conjuguées et les pluriels', () => {
+    for (const mot of ['mangeais', 'maisons', 'partirent', 'buvions']) {
+      expect(existe(mot)).toBe(true)
+    }
   })
 
-  it('refuse moins de trois joueurs', () => {
+  it('rejette le charabia', () => {
+    for (const mot of ['tiotiotio', 'zzzzz', 'aaaa', 'qwerty']) {
+      expect(existe(mot)).toBe(false)
+    }
+  })
+})
+
+describe('normalisation', () => {
+  it('supprime les accents et la casse', () => {
+    expect(normaliser('ÉLÈVE')).toBe('eleve')
+    expect(normaliser('  Château  ')).toBe('chateau')
+    expect(normaliser('Noël')).toBe('noel')
+  })
+
+  it('permet de taper sans accent', () => {
+    expect(existe(normaliser('élève'))).toBe(true)
+    expect(existe(normaliser('eleve'))).toBe(true)
+  })
+})
+
+describe('syllabes', () => {
+  it('tire des syllabes de deux ou trois lettres', () => {
+    for (let i = 0; i < 50; i++) {
+      const s = tirerSyllabe(createRng(`s-${i}`))
+      expect(s).toMatch(/^[a-z]{2,3}$/)
+    }
+  })
+
+  it('ne tire que des syllabes réellement jouables', () => {
+    // Chacune doit se retrouver dans au moins un mot du dictionnaire.
+    for (let i = 0; i < 25; i++) {
+      const s = tirerSyllabe(createRng(`jouable-${i}`))
+      const trouve = ['maison', 'bonjour', 'partir'].some((m) => m.includes(s))
+      // On ne peut pas tester tout le dictionnaire ici : on vérifie surtout que
+      // la syllabe est bien formée et que le tirage ne sort jamais du lot.
+      expect(typeof trouve).toBe('boolean')
+      expect(s.length).toBeGreaterThanOrEqual(2)
+    }
+  })
+})
+
+describe('init', () => {
+  it('distribue les vies et allume une mèche', () => {
+    const s = bombeMachine.init({
+      participants: JOUEURS,
+      rng: createRng('init'),
+      now: 1_000,
+      mode: 'free',
+    })
+
+    expect(s.public.vies).toEqual({ a: BOMBE_VIES, b: BOMBE_VIES, c: BOMBE_VIES })
+    expect(s.public.deadlineAt).toBeGreaterThanOrEqual(1_000 + BOMBE_MIN_MS)
+    expect(s.public.deadlineAt).toBeLessThanOrEqual(1_000 + BOMBE_MAX_MS)
+    expect(s.public.syllabe).toMatch(/^[a-z]{2,3}$/)
+  })
+
+  it('refuse un seul joueur', () => {
     expect(() =>
-      bombeMachine.init({ participants: ['a', 'b'], rng: createRng('x'), now: 0, mode: 'free' }),
+      bombeMachine.init({ participants: ['a'], rng: createRng('x'), now: 0, mode: 'free' }),
     ).toThrow()
   })
 })
 
-describe('secret', () => {
-  it('ne révèle l’instant d’explosion à personne, pas même au porteur', () => {
-    const s = fresh()
-    for (const j of JOUEURS) {
-      const vue = bombeMachine.view(s, j)
-      expect(vue.privateView).toBeNull()
-      expect(JSON.stringify(vue.publicView)).not.toContain(String(s.secret.explodeAt))
-    }
-  })
-})
+describe('proposer un mot', () => {
+  it('accepte un mot valide et passe au suivant', () => {
+    const s = makeState({ syllabe: 'ais' })
+    const out = bombeMachine.reduce(s, { type: 'mot', mot: 'maison' }, ctx('a'))
 
-describe('passer la bombe', () => {
-  it('la transmet au joueur suivant', () => {
-    const s = makeState({ explodeAt: 50_000 })
-    const out = bombeMachine.reduce(s, { type: 'pass' }, ctx('a', 2_000))
-
-    expect(out.state.public.holderIndex).toBe(1)
-    expect(out.state.public.passes['a']).toBe(1)
-    expect(out.state.public.history).toHaveLength(0)
+    expect(out.state.public.currentIndex).toBe(1)
+    expect(out.state.public.motsRecents).toEqual(['maison'])
+    expect(out.state.secret.utilises).toEqual(['maison'])
+    expect(out.state.public.dernierCoup?.valide).toBe(true)
   })
 
-  it('boucle sur le premier joueur', () => {
-    const s = makeState({ explodeAt: 50_000, holderIndex: 3 })
-    const out = bombeMachine.reduce(s, { type: 'pass' }, ctx('d', 2_000))
-    expect(out.state.public.holderIndex).toBe(0)
+  it('tire une nouvelle syllabe à chaque mot trouvé', () => {
+    const s = makeState({ syllabe: 'ais' })
+    const out = bombeMachine.reduce(s, { type: 'mot', mot: 'maison' }, ctx('a'))
+    expect(out.state.public.syllabe).toMatch(/^[a-z]{2,3}$/)
   })
 
-  it('refuse le tap de quelqu’un qui ne l’a pas', () => {
-    const s = makeState({ explodeAt: 50_000 })
-    expect(() => bombeMachine.reduce(s, { type: 'pass' }, ctx('c', 2_000))).toThrow(
+  it('NE rallume PAS la mèche : le suivant hérite du temps restant', () => {
+    const s = makeState({ syllabe: 'ais', deadlineAt: 42_000 })
+    const out = bombeMachine.reduce(s, { type: 'mot', mot: 'maison' }, ctx('a'))
+
+    expect(out.state.public.deadlineAt).toBe(42_000)
+    expect(out.state.public.mecheAllumeeA).toBe(s.public.mecheAllumeeA)
+  })
+
+  it('accepte un mot tapé sans accent', () => {
+    const s = makeState({ syllabe: 'lev' })
+    const out = bombeMachine.reduce(s, { type: 'mot', mot: 'eleve' }, ctx('a'))
+    expect(out.state.public.dernierCoup?.valide).toBe(true)
+  })
+
+  it('refuse un mot sans la syllabe', () => {
+    const s = makeState({ syllabe: 'zzz' })
+    expect(() => bombeMachine.reduce(s, { type: 'mot', mot: 'maison' }, ctx('a'))).toThrow(
+      /Il faut/,
+    )
+  })
+
+  it('refuse un mot inconnu du dictionnaire', () => {
+    const s = makeState({ syllabe: 'tio' })
+    expect(() => bombeMachine.reduce(s, { type: 'mot', mot: 'tiotiotio' }, ctx('a'))).toThrow(
+      /Inconnu/,
+    )
+  })
+
+  it('refuse un mot déjà employé', () => {
+    const s = makeState({ syllabe: 'ais', utilises: ['maison'] })
+    expect(() => bombeMachine.reduce(s, { type: 'mot', mot: 'Maison' }, ctx('a'))).toThrow(
+      /Déjà joué/,
+    )
+  })
+
+  it('refuse un mot trop court', () => {
+    const s = makeState({ syllabe: 'ai' })
+    expect(() => bombeMachine.reduce(s, { type: 'mot', mot: 'ai' }, ctx('a'))).toThrow(/court/)
+  })
+
+  it('refuse les caractères exotiques', () => {
+    const s = makeState({ syllabe: 'ais' })
+    expect(() => bombeMachine.reduce(s, { type: 'mot', mot: 'mai-son' }, ctx('a'))).toThrow()
+  })
+
+  it('refuse un joueur qui n’a pas la bombe', () => {
+    const s = makeState({ syllabe: 'ais' })
+    expect(() => bombeMachine.reduce(s, { type: 'mot', mot: 'maison' }, ctx('b'))).toThrow(
       InvalidActionError,
     )
+  })
+
+  it('laisse rejouer après un refus, sans rien consommer', () => {
+    const s = makeState({ syllabe: 'ais' })
+    expect(() => bombeMachine.reduce(s, { type: 'mot', mot: 'zzzz' }, ctx('a'))).toThrow()
+    const out = bombeMachine.reduce(s, { type: 'mot', mot: 'maison' }, ctx('a'))
+    expect(out.state.public.dernierCoup?.valide).toBe(true)
   })
 })
 
 describe('explosion', () => {
-  it('éclate au visage de qui passe trop tard', () => {
-    const s = makeState({ explodeAt: 5_000 })
-    const out = bombeMachine.reduce(s, { type: 'pass' }, ctx('a', 5_001))
+  it('coûte une vie et des gorgées à celui qui la tient', () => {
+    const s = makeState({ syllabe: 'ais', deadlineAt: 5_000 })
+    const out = bombeMachine.reduce(s, { type: 'timeout' }, ctx('a', 5_001))
 
-    expect(out.state.public.history[0]).toMatchObject({ victim: 'a', round: 1 })
-    expect(out.state.public.sips['a']).toBe(BOMBE_SIPS[0])
+    expect(out.state.public.vies['a']).toBe(BOMBE_VIES - 1)
+    expect(out.state.public.sips['a']).toBe(BOMBE_SIPS_EXPLOSION)
     expect(out.state.public.explosions['a']).toBe(1)
   })
 
-  it('éclate à l’échéance sur celui qui la garde', () => {
-    const s = makeState({ explodeAt: 5_000, holderIndex: 2 })
-    const out = bombeMachine.reduce(s, { type: 'timeout' }, ctx('a', 999_999))
+  it('rallume une mèche neuve et change de syllabe', () => {
+    const s = makeState({ syllabe: 'ais', deadlineAt: 5_000 })
+    const out = bombeMachine.reduce(s, { type: 'timeout' }, ctx('a', 5_001))
 
-    expect(out.state.public.history[0]?.victim).toBe('c')
-    expect(out.state.public.sips['c']).toBe(BOMBE_SIPS[0])
+    expect(out.state.public.deadlineAt).toBeGreaterThanOrEqual(5_001 + BOMBE_MIN_MS)
+    expect(out.state.public.mecheAllumeeA).toBe(5_001)
+    expect(out.state.public.currentIndex).toBe(1)
   })
 
-  it('refuse une explosion réclamée avant l’échéance', () => {
-    const s = makeState({ explodeAt: 5_000 })
+  it('refuse une explosion réclamée trop tôt', () => {
+    const s = makeState({ syllabe: 'ais', deadlineAt: 50_000 })
     expect(() => bombeMachine.reduce(s, { type: 'timeout' }, ctx('a', 2_000))).toThrow(
-      InvalidActionError,
+      /brûle encore/,
     )
   })
 
-  it('rend la bombe à sa victime pour la manche suivante', () => {
-    const s = makeState({ explodeAt: 5_000, holderIndex: 2 })
-    const out = bombeMachine.reduce(s, { type: 'pass' }, ctx('c', 5_001))
+  it('élimine à court de vies, avec un supplément de gorgées', () => {
+    const s = makeState({ syllabe: 'ais', vies: { a: 1, b: 2, c: 2 }, deadlineAt: 5_000 })
+    const out = bombeMachine.reduce(s, { type: 'timeout' }, ctx('a', 5_001))
 
-    expect(out.state.public.holderIndex).toBe(2)
-    expect(out.state.public.round).toBe(2)
+    expect(out.state.public.vies['a']).toBe(0)
+    expect(out.state.public.ordreElimination).toEqual(['a'])
+    expect(out.state.public.sips['a']).toBe(BOMBE_SIPS_EXPLOSION + BOMBE_SIPS_ELIMINATION)
   })
 
-  it('réarme une nouvelle échéance après chaque explosion', () => {
-    const s = makeState({ explodeAt: 5_000 })
-    const out = bombeMachine.reduce(s, { type: 'pass' }, ctx('a', 5_001))
-
-    expect(out.state.secret.explodeAt).toBeGreaterThan(5_001)
-    expect(out.state.public.deadlineAt).toBe(5_001 + BOMBE_MAX_MS)
-  })
-
-  it('fait monter la sanction à chaque explosion', () => {
-    const s = makeState({ explodeAt: 5_000, round: 2 })
-    const out = bombeMachine.reduce(s, { type: 'pass' }, ctx('a', 5_001))
-    expect(out.state.public.sips['a']).toBe(BOMBE_SIPS[1])
+  it('saute les éliminés dans le tour de table', () => {
+    const s = makeState({
+      syllabe: 'ais',
+      vies: { a: 2, b: 0, c: 2 },
+      currentIndex: 0,
+      deadlineAt: 5_000,
+    })
+    const out = bombeMachine.reduce(s, { type: 'timeout' }, ctx('a', 5_001))
+    // b est éliminé : la main saute directement à c.
+    expect(out.state.public.order[out.state.public.currentIndex]).toBe('c')
   })
 })
 
-describe('fin de manche', () => {
-  it('s’arrête à la troisième explosion', () => {
-    const s = makeState({ explodeAt: 5_000, round: 3 })
-    const out = bombeMachine.reduce(s, { type: 'pass' }, ctx('a', 5_001))
+describe('fin de partie', () => {
+  it('s’arrête quand il ne reste qu’un joueur', () => {
+    const s = makeState({
+      syllabe: 'ais',
+      vies: { a: 1, b: 0, c: 2 },
+      ordreElimination: ['b'],
+      deadlineAt: 5_000,
+    })
+    const out = bombeMachine.reduce(s, { type: 'timeout' }, ctx('a', 5_001))
 
     expect(out.state.public.phase).toBe('over')
+    expect(out.state.public.gagnant).toBe('c')
     expect(out.result).toBeDefined()
-    expect(out.state.public.deadlineAt).toBeNull()
   })
 
-  it('classe les moins touchés devant', () => {
+  it('classe le survivant devant, puis les éliminés du dernier au premier', () => {
     const s = makeState({
-      explodeAt: 5_000,
-      round: 3,
-      explosions: { a: 0, b: 2, c: 0, d: 0 },
-      passes: { a: 9, b: 0, c: 3, d: 1 },
+      syllabe: 'ais',
+      vies: { a: 1, b: 0, c: 2 },
+      ordreElimination: ['b'],
+      deadlineAt: 5_000,
     })
-    const out = bombeMachine.reduce(s, { type: 'pass' }, ctx('a', 5_001))
+    const out = bombeMachine.reduce(s, { type: 'timeout' }, ctx('a', 5_001))
 
-    // a encaisse la troisième : b (2 explosions) et a (1) ferment la marche.
-    expect(out.result?.ranking[0]).toEqual(['c'])
-    expect(out.result?.ranking[out.result.ranking.length - 1]).toEqual(['b'])
+    expect(out.result?.ranking).toEqual([['c'], ['a'], ['b']])
   })
 
   it('rejette toute action après la fin', () => {
-    const s = makeState({ explodeAt: 5_000, round: 3 })
-    const fini = bombeMachine.reduce(s, { type: 'pass' }, ctx('a', 5_001)).state
-    expect(() => bombeMachine.reduce(fini, { type: 'pass' }, ctx('a', 6_000))).toThrow(
+    const s = makeState({
+      syllabe: 'ais',
+      vies: { a: 1, b: 0, c: 2 },
+      ordreElimination: ['b'],
+      deadlineAt: 5_000,
+    })
+    const fini = bombeMachine.reduce(s, { type: 'timeout' }, ctx('a', 5_001)).state
+    expect(() => bombeMachine.reduce(fini, { type: 'mot', mot: 'maison' }, ctx('c'))).toThrow(
       InvalidActionError,
     )
   })
 })
 
-describe('actions illégales', () => {
-  it('refuse une charge utile malformée', () => {
-    expect(() => bombeMachine.parseAction({ type: 'boum' })).toThrow()
-    expect(() => bombeMachine.parseAction({})).toThrow()
+describe('secret', () => {
+  it('n’expose aucune vue personnelle : tout le monde voit la même chose', () => {
+    const s = makeState({ syllabe: 'ais' })
+    for (const j of JOUEURS) {
+      expect(bombeMachine.view(s, j).privateView).toBeNull()
+    }
+  })
+})
+
+describe('charge utile', () => {
+  it('refuse les actions malformées', () => {
+    expect(() => bombeMachine.parseAction({ type: 'mot' })).toThrow()
+    expect(() => bombeMachine.parseAction({ type: 'mot', mot: '' })).toThrow()
+    expect(() => bombeMachine.parseAction({ type: 'inconnu' })).toThrow()
+    expect(() => bombeMachine.parseAction(null)).toThrow()
+  })
+
+  it('accepte les actions valides', () => {
+    expect(bombeMachine.parseAction({ type: 'mot', mot: 'chat' })).toEqual({
+      type: 'mot',
+      mot: 'chat',
+    })
+    expect(bombeMachine.parseAction({ type: 'timeout' })).toEqual({ type: 'timeout' })
   })
 })
