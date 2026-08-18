@@ -281,12 +281,18 @@ export async function closeBetting(round: RoundRow): Promise<void> {
   if (error) throw error
 }
 
+export interface CoupApplique {
+  etat: unknown
+  /** Version de l'état après écriture : le client refuse ce qui est plus ancien. */
+  version: number
+}
+
 export async function applyGameAction(
   session: SessionRow,
   round: RoundRow,
   actor: PlayerId,
   payload: unknown,
-): Promise<unknown> {
+): Promise<CoupApplique> {
   if (round.status !== 'playing') {
     throw new InvalidActionError(
       round.status === 'betting' ? 'La manche n’a pas encore commencé.' : 'Manche terminée.',
@@ -312,6 +318,7 @@ export async function applyGameAction(
   // touché à l'état entre-temps. Sinon on recommence sur la version fraîche.
   // C'est ce qui empêche deux joueurs simultanés de s'effacer l'un l'autre.
   let outcome: ReturnType<typeof jeu.machine.reduce> | null = null
+  let versionEcrite = 0
 
   for (let essai = 0; essai < MAX_REESSAIS; essai++) {
     const { publicState, secretState, version } = await getRoundState(round.id)
@@ -332,7 +339,10 @@ export async function applyGameAction(
       outcome.state.secret,
       version,
     )
-    if (ecrit) break
+    if (ecrit) {
+      versionEcrite = version
+      break
+    }
 
     outcome = null
   }
@@ -358,8 +368,10 @@ export async function applyGameAction(
   })
 
   // Rendu à l'appelant pour qu'il affiche le résultat immédiatement, sans
-  // attendre l'aller-retour du temps réel.
-  return outcome.state.public
+  // attendre l'aller-retour du temps réel. La version accompagne l'état :
+  // sans elle, le client ne saurait pas si ce qu'il reçoit est plus récent
+  // que ce qu'il affiche déjà.
+  return { etat: outcome.state.public, version: versionEcrite + 1 }
 }
 
 function deltaSips(

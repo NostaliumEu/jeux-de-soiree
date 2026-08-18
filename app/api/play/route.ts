@@ -79,8 +79,8 @@ export async function POST(request: NextRequest) {
 
     // Le nouvel état part avec la réponse : celui qui joue voit sa carte
     // immédiatement, sans attendre le retour du temps réel.
-    const etat = await applyGameAction(session, round, joueur.id, body.payload)
-    return NextResponse.json({ ok: true, etat })
+    const applique = await applyGameAction(session, round, joueur.id, body.payload)
+    return NextResponse.json({ ok: true, ...applique })
   } catch (error) {
     return fail(error)
   }

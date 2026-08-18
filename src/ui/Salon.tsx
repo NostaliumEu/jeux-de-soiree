@@ -119,8 +119,11 @@ export function Salon({ code }: { code: string }) {
       try {
         const reponse = await api.jouer(identite, mancheId, payload)
         // Le serveur renvoie le nouvel état : on l'affiche tout de suite plutôt
-        // que d'attendre qu'il nous revienne par le temps réel.
-        if (reponse.etat) appliquerEtat(reponse.etat)
+        // que d'attendre qu'il nous revienne par le temps réel. La version
+        // évite d'écraser un coup joué entre-temps par quelqu'un d'autre.
+        if (reponse.etat && typeof reponse.version === 'number') {
+          appliquerEtat(reponse.etat, reponse.version)
+        }
       } catch (e) {
         signaler(e)
       }

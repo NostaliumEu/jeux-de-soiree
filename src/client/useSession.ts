@@ -8,10 +8,15 @@ import type { Instantane, JoueurPublic, SessionPublique, manchePublique } from '
 /**
  * Abonnement temps réel à une soirée.
  *
- * Plutôt que d'appliquer des correctifs incrémentaux (source intarissable de
- * désynchronisations quand un téléphone s'endort trente secondes), on recharge
- * l'instantané complet à chaque notification. Une soirée compte quelques
- * dizaines de lignes : le coût est négligeable et l'état est toujours juste.
+ * Deux régimes, selon la fréquence d'écriture.
+ *
+ * Les tables calmes — la soirée, les joueurs, le plateau, les gorgées —
+ * déclenchent un rechargement complet de l'instantané : c'est simple, robuste,
+ * et quelques dizaines de lignes ne coûtent rien.
+ *
+ * L'état de la manche, lui, est écrit plusieurs fois par seconde. Sa
+ * notification porte déjà la ligne entière : on l'applique telle quelle, en
+ * refusant celles plus anciennes que ce qui est affiché.
  */
 export function useSession(code: string) {
   const [instantane, setInstantane] = useState<Instantane | null>(null)
@@ -114,8 +119,31 @@ export function useSession(code: string) {
     }
   }, [sessionId, charger])
 
+  /**
+   * Installe un nouvel état de manche, qu'il vienne du temps réel ou de la
+   * réponse à sa propre action. Dans ce second cas, l'affichage n'attend pas
+   * l'aller-retour du socket : on voit sa carte immédiatement.
+   */
+  const appliquerEtat = useCallback((etat: Record<string, unknown>, version: number) => {
+    setInstantane((precedent) => {
+      if (!precedent) return precedent
+      // Un état plus ancien que celui affiché est ignoré. Sans ce garde-fou,
+      // la réponse à MON action réinstallait un instantané antérieur aux coups
+      // joués entre-temps par les autres : leurs jauges se figeaient ou
+      // reculaient, ce qui donnait toute l'impression d'une désynchronisation.
+      if (version <= precedent.version) return precedent
+      return { ...precedent, etatPublic: etat, version }
+    })
+  }, [])
+
   // L'état d'une manche vit dans sa propre table, sans colonne `session_id` :
   // on rebranche donc un canal dédié à chaque changement de manche.
+  //
+  // Ici on APPLIQUE la ligne reçue au lieu de recharger tout l'instantané.
+  // C'est la table la plus écrite de loin — pendant un Sprint à quatre, une
+  // quinzaine de fois par seconde — et déclencher cinq requêtes à chaque
+  // notification saturait les téléphones pour rien : la notification contient
+  // déjà exactement ce qu'on allait redemander.
   const roundId = instantane?.session.current_round_id
   useEffect(() => {
     if (!roundId) return
@@ -131,14 +159,23 @@ export function useSession(code: string) {
           table: 'round_public_state',
           filter: `round_id=eq.${roundId}`,
         },
-        () => void charger(),
+        (message) => {
+          const ligne = message.new as
+            | { public_state?: Record<string, unknown>; version?: number }
+            | undefined
+          if (ligne?.public_state && typeof ligne.version === 'number') {
+            appliquerEtat(ligne.public_state, ligne.version)
+          } else {
+            void charger()
+          }
+        },
       )
       .subscribe()
 
     return () => {
       void db.removeChannel(canal)
     }
-  }, [roundId, charger])
+  }, [roundId, charger, appliquerEtat])
 
   // Filet de sécurité : si le socket meurt en silence (téléphone verrouillé,
   // changement de réseau), on resynchronise quand même. Inutile de le faire
@@ -161,17 +198,6 @@ export function useSession(code: string) {
     }
   }, [charger])
 
-  /**
-   * Applique sans délai l'état renvoyé par le serveur au joueur qui vient
-   * d'agir. Sans ça, il verrait sa propre carte avec un temps de retard : le
-   * temps que l'écriture parte en base, que Realtime la diffuse et qu'on
-   * recharge l'instantané.
-   */
-  const appliquerEtat = useCallback((etat: Record<string, unknown>) => {
-    setInstantane((precedent) =>
-      precedent ? { ...precedent, etatPublic: etat, version: precedent.version + 1 } : precedent,
-    )
-  }, [])
 
   return { instantane, erreur, chargement, recharger: charger, appliquerEtat }
 }
