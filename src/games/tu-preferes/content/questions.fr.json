@@ -1,72 +1,597 @@
 {
   "_comment": "Ajouter une question ne demande aucune ligne de code : une entrée ici suffit. Les identifiants doivent rester stables et uniques.",
   "binaire": [
-    { "id": "b01", "a": "Ne plus jamais boire d’alcool", "b": "Ne plus jamais manger de fromage" },
-    { "id": "b02", "a": "Avoir toujours 5 minutes de retard", "b": "Avoir toujours 20 minutes d’avance" },
-    { "id": "b03", "a": "Ne plus jamais écouter de musique", "b": "Ne plus jamais regarder de film" },
-    { "id": "b04", "a": "Vivre un an sans téléphone", "b": "Vivre un an sans eau chaude" },
-    { "id": "b05", "a": "Ne dormir que 4 heures par nuit", "b": "Dormir 12 heures et perdre la moitié de ta journée" },
-    { "id": "b06", "a": "Connaître la date de ta mort", "b": "Connaître la cause de ta mort" },
-    { "id": "b07", "a": "Perdre tous tes messages", "b": "Perdre toutes tes photos" },
-    { "id": "b08", "a": "Avoir toujours trop chaud", "b": "Avoir toujours trop froid" },
-    { "id": "b09", "a": "Manger la même chose toute ta vie", "b": "Ne jamais remanger deux fois le même plat" },
-    { "id": "b10", "a": "Ne plus jamais boire de café", "b": "Ne plus jamais boire de bière" },
-    { "id": "b11", "a": "Devoir chanter au lieu de parler", "b": "Devoir danser au lieu de marcher" },
-    { "id": "b12", "a": "Lire dans les pensées", "b": "Devenir invisible" },
-    { "id": "b13", "a": "Que tout le monde voie ton historique de recherche", "b": "Que tout le monde voie tes relevés bancaires" },
-    { "id": "b14", "a": "Ne plus jamais partir en vacances", "b": "Ne plus jamais avoir de week-end" },
-    { "id": "b15", "a": "Vivre en colocation à vie", "b": "Vivre seul à vie" },
-    { "id": "b16", "a": "Être célèbre et détesté", "b": "Être anonyme et adoré de dix personnes" },
-    { "id": "b17", "a": "Ne plus jamais mentir", "b": "Ne plus jamais entendre la vérité" },
-    { "id": "b18", "a": "Passer une nuit en garde à vue", "b": "Passer une nuit aux urgences" },
-    { "id": "b19", "a": "Manger froid toute ta vie", "b": "Boire tiède toute ta vie" },
-    { "id": "b20", "a": "Être le plus drôle mais le moins malin du groupe", "b": "Être le plus malin mais le moins drôle" },
-    { "id": "b21", "a": "Recommencer ton année de terminale", "b": "Recommencer ton premier boulot" },
-    { "id": "b22", "a": "Rire à chaque mauvaise nouvelle", "b": "Pleurer à chaque bonne nouvelle" },
-    { "id": "b23", "a": "Avoir un colocataire qui ronfle", "b": "Avoir un voisin en travaux permanents" },
-    { "id": "b24", "a": "Perdre le goût", "b": "Perdre l’odorat" },
-    { "id": "b25", "a": "Devoir marcher partout", "b": "Ne plus jamais pouvoir marcher seul" },
-    { "id": "b26", "a": "Avoir toujours une chanson en tête", "b": "Avoir toujours une phrase qui tourne en boucle" },
-    { "id": "b27", "a": "Une pizza froide tous les jours", "b": "Une salade parfaite tous les jours" },
-    { "id": "b28", "a": "Bloqué deux heures dans un ascenseur", "b": "Bloqué six heures dans un train sans réseau" },
-    { "id": "b29", "a": "Que tout le monde voie tes rêves", "b": "Que personne ne te croie jamais" },
-    { "id": "b30", "a": "Dire oui à tout pendant une semaine", "b": "Dire non à tout pendant une semaine" },
-    { "id": "b31", "a": "Vivre à la montagne sans jamais voir la mer", "b": "Vivre à la mer sans jamais voir la montagne" },
-    { "id": "b32", "a": "Un tatouage raté bien visible", "b": "Une coupe de cheveux ratée définitive" },
-    { "id": "b33", "a": "Ne plus jamais faire la fête", "b": "Ne plus jamais dormir dans ton lit" },
-    { "id": "b34", "a": "Avoir une heure de trajet en plus chaque jour", "b": "Travailler un samedi sur deux" },
-    { "id": "b35", "a": "Ne plus jamais utiliser d’écouteurs", "b": "Ne plus jamais mettre le son" },
-    { "id": "b36", "a": "Tout oublier de ces dix dernières années", "b": "Ne rien pouvoir retenir des dix prochaines" },
-    { "id": "b37", "a": "Devoir tout dire à voix haute", "b": "Ne plus jamais pouvoir dire ce que tu penses" },
-    { "id": "b38", "a": "Être toujours le conducteur désigné", "b": "Ne plus jamais avoir le droit de choisir la musique" },
-    { "id": "b39", "a": "Un chez-toi minuscule en centre-ville", "b": "Une grande maison à deux heures de tout" },
-    { "id": "b40", "a": "Que ton ex revienne", "b": "Que ton ex sorte avec ton meilleur ami" }
+    {
+      "id": "b01",
+      "a": "Ne plus jamais boire d’alcool",
+      "b": "Ne plus jamais manger de fromage"
+    },
+    {
+      "id": "b02",
+      "a": "Avoir toujours 5 minutes de retard",
+      "b": "Avoir toujours 20 minutes d’avance"
+    },
+    {
+      "id": "b03",
+      "a": "Ne plus jamais écouter de musique",
+      "b": "Ne plus jamais regarder de film"
+    },
+    {
+      "id": "b04",
+      "a": "Vivre un an sans téléphone",
+      "b": "Vivre un an sans eau chaude"
+    },
+    {
+      "id": "b05",
+      "a": "Ne dormir que 4 heures par nuit",
+      "b": "Dormir 12 heures et perdre la moitié de ta journée"
+    },
+    {
+      "id": "b06",
+      "a": "Connaître la date de ta mort",
+      "b": "Connaître la cause de ta mort"
+    },
+    {
+      "id": "b07",
+      "a": "Perdre tous tes messages",
+      "b": "Perdre toutes tes photos"
+    },
+    {
+      "id": "b08",
+      "a": "Avoir toujours trop chaud",
+      "b": "Avoir toujours trop froid"
+    },
+    {
+      "id": "b09",
+      "a": "Manger la même chose toute ta vie",
+      "b": "Ne jamais remanger deux fois le même plat"
+    },
+    {
+      "id": "b10",
+      "a": "Ne plus jamais boire de café",
+      "b": "Ne plus jamais boire de bière"
+    },
+    {
+      "id": "b11",
+      "a": "Devoir chanter au lieu de parler",
+      "b": "Devoir danser au lieu de marcher"
+    },
+    {
+      "id": "b12",
+      "a": "Lire dans les pensées",
+      "b": "Devenir invisible"
+    },
+    {
+      "id": "b13",
+      "a": "Que tout le monde voie ton historique de recherche",
+      "b": "Que tout le monde voie tes relevés bancaires"
+    },
+    {
+      "id": "b14",
+      "a": "Ne plus jamais partir en vacances",
+      "b": "Ne plus jamais avoir de week-end"
+    },
+    {
+      "id": "b15",
+      "a": "Vivre en colocation à vie",
+      "b": "Vivre seul à vie"
+    },
+    {
+      "id": "b16",
+      "a": "Être célèbre et détesté",
+      "b": "Être anonyme et adoré de dix personnes"
+    },
+    {
+      "id": "b17",
+      "a": "Ne plus jamais mentir",
+      "b": "Ne plus jamais entendre la vérité"
+    },
+    {
+      "id": "b18",
+      "a": "Passer une nuit en garde à vue",
+      "b": "Passer une nuit aux urgences"
+    },
+    {
+      "id": "b19",
+      "a": "Manger froid toute ta vie",
+      "b": "Boire tiède toute ta vie"
+    },
+    {
+      "id": "b20",
+      "a": "Être le plus drôle mais le moins malin du groupe",
+      "b": "Être le plus malin mais le moins drôle"
+    },
+    {
+      "id": "b21",
+      "a": "Recommencer ton année de terminale",
+      "b": "Recommencer ton premier boulot"
+    },
+    {
+      "id": "b22",
+      "a": "Rire à chaque mauvaise nouvelle",
+      "b": "Pleurer à chaque bonne nouvelle"
+    },
+    {
+      "id": "b23",
+      "a": "Avoir un colocataire qui ronfle",
+      "b": "Avoir un voisin en travaux permanents"
+    },
+    {
+      "id": "b24",
+      "a": "Perdre le goût",
+      "b": "Perdre l’odorat"
+    },
+    {
+      "id": "b25",
+      "a": "Devoir marcher partout",
+      "b": "Ne plus jamais pouvoir marcher seul"
+    },
+    {
+      "id": "b26",
+      "a": "Avoir toujours une chanson en tête",
+      "b": "Avoir toujours une phrase qui tourne en boucle"
+    },
+    {
+      "id": "b27",
+      "a": "Une pizza froide tous les jours",
+      "b": "Une salade parfaite tous les jours"
+    },
+    {
+      "id": "b28",
+      "a": "Bloqué deux heures dans un ascenseur",
+      "b": "Bloqué six heures dans un train sans réseau"
+    },
+    {
+      "id": "b29",
+      "a": "Que tout le monde voie tes rêves",
+      "b": "Que personne ne te croie jamais"
+    },
+    {
+      "id": "b30",
+      "a": "Dire oui à tout pendant une semaine",
+      "b": "Dire non à tout pendant une semaine"
+    },
+    {
+      "id": "b31",
+      "a": "Vivre à la montagne sans jamais voir la mer",
+      "b": "Vivre à la mer sans jamais voir la montagne"
+    },
+    {
+      "id": "b32",
+      "a": "Un tatouage raté bien visible",
+      "b": "Une coupe de cheveux ratée définitive"
+    },
+    {
+      "id": "b33",
+      "a": "Ne plus jamais faire la fête",
+      "b": "Ne plus jamais dormir dans ton lit"
+    },
+    {
+      "id": "b34",
+      "a": "Avoir une heure de trajet en plus chaque jour",
+      "b": "Travailler un samedi sur deux"
+    },
+    {
+      "id": "b35",
+      "a": "Ne plus jamais utiliser d’écouteurs",
+      "b": "Ne plus jamais mettre le son"
+    },
+    {
+      "id": "b36",
+      "a": "Tout oublier de ces dix dernières années",
+      "b": "Ne rien pouvoir retenir des dix prochaines"
+    },
+    {
+      "id": "b37",
+      "a": "Devoir tout dire à voix haute",
+      "b": "Ne plus jamais pouvoir dire ce que tu penses"
+    },
+    {
+      "id": "b38",
+      "a": "Être toujours le conducteur désigné",
+      "b": "Ne plus jamais avoir le droit de choisir la musique"
+    },
+    {
+      "id": "b39",
+      "a": "Un chez-toi minuscule en centre-ville",
+      "b": "Une grande maison à deux heures de tout"
+    },
+    {
+      "id": "b40",
+      "a": "Que ton ex revienne",
+      "b": "Que ton ex sorte avec ton meilleur ami"
+    },
+    {
+      "id": "b41",
+      "a": "Recoucher une dernière fois avec ton ex",
+      "b": "Ne plus coucher avec personne pendant un an"
+    },
+    {
+      "id": "b42",
+      "a": "Que tes parents lisent tes messages avec ton crush",
+      "b": "Que ton crush lise tes messages à son sujet"
+    },
+    {
+      "id": "b43",
+      "a": "Une gueule de bois tous les dimanches à vie",
+      "b": "Ne plus jamais boire une goutte"
+    },
+    {
+      "id": "b44",
+      "a": "Envoyer un nude à la mauvaise personne",
+      "b": "En recevoir un de ton patron"
+    },
+    {
+      "id": "b45",
+      "a": "Un plan cul régulier sans sentiments",
+      "b": "Une relation sérieuse sans sexe"
+    },
+    {
+      "id": "b46",
+      "a": "Que ton historique de navigation soit projeté ici",
+      "b": "Que tes vocaux soient lus à voix haute"
+    },
+    {
+      "id": "b47",
+      "a": "Ne plus jamais fumer",
+      "b": "Ne plus jamais boire"
+    },
+    {
+      "id": "b48",
+      "a": "Rater ton propre mariage à cause d’une cuite",
+      "b": "Rater l’enterrement de vie de garçon de ton meilleur pote"
+    },
+    {
+      "id": "b49",
+      "a": "Faire l’amour une fois par an, mais parfaitement",
+      "b": "Toutes les semaines, mais médiocrement"
+    },
+    {
+      "id": "b50",
+      "a": "Que ton crush sache combien de personnes tu as embrassées",
+      "b": "Que tes potes connaissent ton pire coup"
+    },
+    {
+      "id": "b51",
+      "a": "Une bière tiède tous les matins",
+      "b": "Un shot de vodka tous les soirs"
+    },
+    {
+      "id": "b52",
+      "a": "Que ton ex soit à toutes tes soirées",
+      "b": "Que ton ex sorte avec ton coloc"
+    },
+    {
+      "id": "b53",
+      "a": "Un trou noir par mois",
+      "b": "Une insomnie par semaine"
+    },
+    {
+      "id": "b54",
+      "a": "Draguer devant tes parents",
+      "b": "Que tes parents draguent devant toi"
+    },
+    {
+      "id": "b55",
+      "a": "Ne plus jamais embrasser",
+      "b": "Ne plus jamais danser"
+    },
+    {
+      "id": "b56",
+      "a": "Que tout le monde sache avec qui tu as couché",
+      "b": "Savoir avec qui tout le monde a couché"
+    },
+    {
+      "id": "b57",
+      "a": "Une soirée à jeun entouré de gens bourrés",
+      "b": "Une soirée bourré entouré de gens à jeun"
+    },
+    {
+      "id": "b58",
+      "a": "Que ton téléphone se déverrouille seul devant ton ou ta partenaire",
+      "b": "Devant ta mère"
+    },
+    {
+      "id": "b59",
+      "a": "Faire un strip-tease à cette table",
+      "b": "Raconter ton pire moment au lit, en détail"
+    },
+    {
+      "id": "b60",
+      "a": "Perdre l’équilibre dès le premier verre",
+      "b": "Perdre la mémoire à partir du troisième"
+    },
+    {
+      "id": "b61",
+      "a": "Un tatouage au prénom de ton ex",
+      "b": "Crier le prénom de ton ex au mauvais moment"
+    },
+    {
+      "id": "b62",
+      "a": "Que ta famille voie tes photos non triées",
+      "b": "Que ton boss voie ta story privée"
+    },
+    {
+      "id": "b63",
+      "a": "Ne plus jamais faire l’amour ivre",
+      "b": "Ne plus jamais faire l’amour sobre"
+    },
+    {
+      "id": "b64",
+      "a": "Une cuite au vin blanc",
+      "b": "Une cuite au rhum"
+    },
+    {
+      "id": "b65",
+      "a": "Avouer un crush à cette table",
+      "b": "Avouer ce que tu as dépensé en alcool ce mois-ci"
+    },
+    {
+      "id": "b66",
+      "a": "Que ton ou ta partenaire lise tes pensées au lit",
+      "b": "Lire les siennes"
+    },
+    {
+      "id": "b67",
+      "a": "Une nuit blanche en boîte",
+      "b": "Une nuit blanche aux urgences pour un pote"
+    },
+    {
+      "id": "b68",
+      "a": "Ne plus jamais prendre de shot",
+      "b": "Ne plus jamais danser sur une table"
+    },
+    {
+      "id": "b69",
+      "a": "Que ton pire flirt soit le dernier",
+      "b": "Que le meilleur soit effacé de ta mémoire"
+    },
+    {
+      "id": "b70",
+      "a": "Être surpris par tes parents",
+      "b": "Surprendre tes parents"
+    },
+    {
+      "id": "b71",
+      "a": "Un after chez un parfait inconnu",
+      "b": "Rentrer seul à pied à cinq heures"
+    },
+    {
+      "id": "b72",
+      "a": "Que ton ex écrive ton discours de mariage",
+      "b": "Que ton patron soit ton témoin"
+    },
+    {
+      "id": "b73",
+      "a": "Fumer un joint avec ta mère",
+      "b": "Boire cul sec avec ton patron"
+    },
+    {
+      "id": "b74",
+      "a": "Que ta bouteille préférée devienne imbuvable",
+      "b": "Que ton plat préféré te dégoûte"
+    },
+    {
+      "id": "b75",
+      "a": "Une semaine sans téléphone",
+      "b": "Une semaine sans alcool ni sexe"
+    },
+    {
+      "id": "b76",
+      "a": "Coucher avec quelqu’un de cette table",
+      "b": "Que tout le monde croie que tu l’as fait"
+    },
+    {
+      "id": "b77",
+      "a": "Ne te souvenir que de tes pires soirées",
+      "b": "N’avoir aucun souvenir des meilleures"
+    },
+    {
+      "id": "b78",
+      "a": "Que ton ou ta partenaire découvre ton nombre exact",
+      "b": "Découvrir le sien"
+    }
   ],
   "joueur": [
-    { "id": "j01", "text": "de rater son avion" },
-    { "id": "j02", "text": "de finir la soirée à quatre pattes" },
-    { "id": "j03", "text": "d’écrire à son ex à trois heures du matin" },
-    { "id": "j04", "text": "de se perdre dans sa propre ville" },
-    { "id": "j05", "text": "de pleurer devant une publicité" },
-    { "id": "j06", "text": "de devenir riche sans que personne comprenne comment" },
-    { "id": "j07", "text": "d’oublier l’anniversaire de sa mère" },
-    { "id": "j08", "text": "de se faire arrêter pour une raison ridicule" },
-    { "id": "j09", "text": "d’exagérer sur son CV" },
-    { "id": "j10", "text": "de dormir jusqu’à quinze heures" },
-    { "id": "j11", "text": "de commander un kebab en pleine nuit" },
-    { "id": "j12", "text": "de parler deux heures à un inconnu" },
-    { "id": "j13", "text": "de se marier en premier" },
-    { "id": "j14", "text": "de raconter deux fois la même histoire ce soir" },
-    { "id": "j15", "text": "de perdre son téléphone ce soir" },
-    { "id": "j16", "text": "de partir sans prévenir personne" },
-    { "id": "j17", "text": "de faire semblant d’avoir lu un livre" },
-    { "id": "j18", "text": "de chanter faux avec une confiance totale" },
-    { "id": "j19", "text": "de tomber amoureux en une soirée" },
-    { "id": "j20", "text": "de se plaindre du prix des verres" },
-    { "id": "j21", "text": "de finir sur une photo gênante demain matin" },
-    { "id": "j22", "text": "de vider le frigo à deux heures du matin" },
-    { "id": "j23", "text": "de lancer un appel vidéo sans prévenir" },
-    { "id": "j24", "text": "de proposer un after alors qu’il est six heures" },
-    { "id": "j25", "text": "d’oublier qu’il travaille demain matin" }
+    {
+      "id": "j01",
+      "text": "de rater son avion"
+    },
+    {
+      "id": "j02",
+      "text": "de finir la soirée à quatre pattes"
+    },
+    {
+      "id": "j03",
+      "text": "d’écrire à son ex à trois heures du matin"
+    },
+    {
+      "id": "j04",
+      "text": "de se perdre dans sa propre ville"
+    },
+    {
+      "id": "j05",
+      "text": "de pleurer devant une publicité"
+    },
+    {
+      "id": "j06",
+      "text": "de devenir riche sans que personne comprenne comment"
+    },
+    {
+      "id": "j07",
+      "text": "d’oublier l’anniversaire de sa mère"
+    },
+    {
+      "id": "j08",
+      "text": "de se faire arrêter pour une raison ridicule"
+    },
+    {
+      "id": "j09",
+      "text": "d’exagérer sur son CV"
+    },
+    {
+      "id": "j10",
+      "text": "de dormir jusqu’à quinze heures"
+    },
+    {
+      "id": "j11",
+      "text": "de commander un kebab en pleine nuit"
+    },
+    {
+      "id": "j12",
+      "text": "de parler deux heures à un inconnu"
+    },
+    {
+      "id": "j13",
+      "text": "de se marier en premier"
+    },
+    {
+      "id": "j14",
+      "text": "de raconter deux fois la même histoire ce soir"
+    },
+    {
+      "id": "j15",
+      "text": "de perdre son téléphone ce soir"
+    },
+    {
+      "id": "j16",
+      "text": "de partir sans prévenir personne"
+    },
+    {
+      "id": "j17",
+      "text": "de faire semblant d’avoir lu un livre"
+    },
+    {
+      "id": "j18",
+      "text": "de chanter faux avec une confiance totale"
+    },
+    {
+      "id": "j19",
+      "text": "de tomber amoureux en une soirée"
+    },
+    {
+      "id": "j20",
+      "text": "de se plaindre du prix des verres"
+    },
+    {
+      "id": "j21",
+      "text": "de finir sur une photo gênante demain matin"
+    },
+    {
+      "id": "j22",
+      "text": "de vider le frigo à deux heures du matin"
+    },
+    {
+      "id": "j23",
+      "text": "de lancer un appel vidéo sans prévenir"
+    },
+    {
+      "id": "j24",
+      "text": "de proposer un after alors qu’il est six heures"
+    },
+    {
+      "id": "j25",
+      "text": "d’oublier qu’il travaille demain matin"
+    },
+    {
+      "id": "j26",
+      "text": "de finir la nuit chez quelqu’un rencontré ce soir"
+    },
+    {
+      "id": "j27",
+      "text": "d’appeler son ex après six verres"
+    },
+    {
+      "id": "j28",
+      "text": "d’oublier complètement sa soirée"
+    },
+    {
+      "id": "j29",
+      "text": "de vomir en premier"
+    },
+    {
+      "id": "j30",
+      "text": "de tomber amoureux d’un inconnu en une heure"
+    },
+    {
+      "id": "j31",
+      "text": "d’avoir déjà embrassé quelqu’un de cette table"
+    },
+    {
+      "id": "j32",
+      "text": "de mentir sur son nombre de partenaires"
+    },
+    {
+      "id": "j33",
+      "text": "d’envoyer un message qu’il regrettera demain"
+    },
+    {
+      "id": "j34",
+      "text": "de se faire sortir d’un bar"
+    },
+    {
+      "id": "j35",
+      "text": "d’avoir un dossier que personne ne connaît encore"
+    },
+    {
+      "id": "j36",
+      "text": "de rouler le joint le plus raté"
+    },
+    {
+      "id": "j37",
+      "text": "de dire « je t’aime » beaucoup trop tôt"
+    },
+    {
+      "id": "j38",
+      "text": "de coucher avec un ou une collègue"
+    },
+    {
+      "id": "j39",
+      "text": "de se réveiller sans savoir où il est"
+    },
+    {
+      "id": "j40",
+      "text": "de finir marié à Las Vegas"
+    },
+    {
+      "id": "j41",
+      "text": "de tromper puis d’avouer dans la seconde"
+    },
+    {
+      "id": "j42",
+      "text": "de garder les photos de tous ses ex"
+    },
+    {
+      "id": "j43",
+      "text": "d’avoir un compte secret quelque part"
+    },
+    {
+      "id": "j44",
+      "text": "de payer une tournée pour impressionner quelqu’un"
+    },
+    {
+      "id": "j45",
+      "text": "de se faire larguer par message"
+    },
+    {
+      "id": "j46",
+      "text": "de partir en vacances avec un inconnu"
+    },
+    {
+      "id": "j47",
+      "text": "de faire ce soir une bêtise irréversible"
+    },
+    {
+      "id": "j48",
+      "text": "de finir la bouteille à lui tout seul"
+    },
+    {
+      "id": "j49",
+      "text": "d’avoir déjà simulé"
+    },
+    {
+      "id": "j50",
+      "text": "de séduire quelqu’un puis d’oublier son prénom"
+    }
   ]
 }
